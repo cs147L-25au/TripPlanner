@@ -12,7 +12,7 @@ import {
 
 // APP
 export default function App() {
-  // --- ✓+ Interactivity (Lecture 2b ideas) ---
+  // Interactivity
   const [likes, setLikes] = useState<number>(0);
   const [showMore, setShowMore] = useState<boolean>(false);
   const [dark, setDark] = useState<boolean>(false);
@@ -22,11 +22,10 @@ export default function App() {
   return (
     <SafeAreaView style={[styles.screen, { backgroundColor: theme.bg }]}>
       <ScrollView contentContainerStyle={styles.scroll}>
-        {/* Header / Avatar */}
+        {/* Header + image */}
         <View style={styles.header}>
-          {/* --- ✓ Add a NEW image from ./assets --- */}
           <Image
-            source={require("./assets/me.jpg")}
+            source={require("./assets/headshot.png")}
             style={styles.avatar}
             resizeMode="cover"
           />
@@ -35,14 +34,14 @@ export default function App() {
               Sohrab Hassibi
             </Text>
             <Text style={[styles.subtitle, { color: theme.subtle }]}>
-              CS @ Stanford • Builder • Policy & AI Safety
+              CS @ Stanford
             </Text>
           </View>
         </View>
 
-        {/* Chips / Quick facts */}
+        {/*Quick facts */}
         <View style={styles.chipRow}>
-          {["React Native", "Fintech", "AI Safety", "Coffee"].map((t) => (
+          {["React-ing", " Menlo Park, CA", "Iranian-American"].map((t) => (
             <View
               key={t}
               style={[styles.chip, { backgroundColor: theme.chipBg }]}
@@ -54,7 +53,7 @@ export default function App() {
           ))}
         </View>
 
-        {/* About Section */}
+        {/* About  */}
         <View
           style={[
             styles.card,
@@ -63,16 +62,15 @@ export default function App() {
         >
           <Text style={[styles.cardTitle, { color: theme.fg }]}>About me</Text>
           <Text style={[styles.paragraph, { color: theme.fg }]}>
-            I love building products at the edge of ML, policy, and finance. I’m
-            currently exploring how trustworthy AI and smart infra can shape
-            emerging markets—while still shipping delightful apps.
+            Stanford '26 studying Computer Science on a pre-law track. 
+            I work in the intersection of data science and global venture investment. In my free time, 
+            I'm a big music nerd, bookworm, and nature guy.
           </Text>
 
           {showMore && (
             <Text style={[styles.paragraph, { color: theme.fg }]}>
-              Lately: React Native / TypeScript, data privacy work, and
-              tinkering with multimodal RNN pipelines for time-series. When I’m
-              not coding, I’m at the station, curating tunes. 🎧
+              Fun fact about me: I'm (co-)General Manager of KZSU, Stanford's 
+              on campus radio station, this year!
             </Text>
           )}
 
@@ -89,23 +87,23 @@ export default function App() {
           </Pressable>
         </View>
 
-        {/* Gallery row (includes starter icon to show contrast) */}
+        {/* Gallery row  */}
         <View style={styles.galleryRow}>
           <Image
-            source={require("./assets/me.jpg")}
+            source={require("./assets/1.jpg")}
             style={styles.galleryImg}
           />
           <Image
-            source={require("./assets/snack-icon.png")}
+            source={require("./assets/2.png")}
             style={styles.galleryImg}
           />
           <Image
-            source={require("./assets/snack-icon.png")}
+            source={require("./assets/3.jpg")}
             style={styles.galleryImg}
           />
         </View>
 
-        {/* Like + Theme toggles */}
+        {/* Like + theme toggle */}
         <View style={styles.actionsRow}>
           <Pressable
             onPress={() => setLikes((c) => c + 1)}
@@ -142,7 +140,7 @@ export default function App() {
   );
 }
 
-// THEMES
+
 const lightTheme = {
   bg: "#F7F9FC",
   fg: "#101828",
@@ -189,10 +187,12 @@ const styles = StyleSheet.create({
   name: {
     fontSize: 24,
     fontWeight: "800",
+    fontFamily: "Avenir",
   },
   subtitle: {
     marginTop: 4,
     fontSize: 14,
+    fontFamily: "Avenir-Book",
   },
   avatar: {
     width: 72,
@@ -212,6 +212,7 @@ const styles = StyleSheet.create({
   chipText: {
     fontSize: 12,
     fontWeight: "600",
+    fontFamily: "Academy Engraved LET",
   },
   card: {
     borderWidth: 1,
@@ -226,6 +227,7 @@ const styles = StyleSheet.create({
   paragraph: {
     fontSize: 15,
     lineHeight: 22,
+    fontFamily: "Avenir-Book"
   },
   button: {
     marginTop: 6,
@@ -265,5 +267,13 @@ const styles = StyleSheet.create({
   likes: {
     textAlign: "center",
     fontSize: 13,
+  },
+  container: {
+    flex: 1,
+    backgroundColor: "#ecf0f1",
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 8,
+    fontFamily: "Avenir",
   },
 });
