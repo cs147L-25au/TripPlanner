@@ -1,48 +1,88 @@
-import { StyleSheet, View, Text, Image, Dimensions } from "react-native";
-
+import React from "react";
+import {
+  StyleSheet,
+  View,
+  Text,
+  Image,
+  Dimensions,
+  Pressable,
+} from "react-native";
 import Profiles from "../../assets/Profiles";
-
-/* Files called index.js are treated specially by Node.js.
- * You can import them by giving the name of the folder the index.js
- * is located in! */
 import Icons from "../../assets/Icons";
+import { Themes } from "../../assets/Themes";
+import type { ThemeMode } from "../../App";
 
-/* This handy trick grabs the width and height of the device's window,
- * which lets you set the sizes of your UI elements relative to the
- * dimensions of the device. */
 const windowWidth = Dimensions.get("window").width;
-const windowHeight = Dimensions.get("window").height;
 
-const Header = () => {
+type Props = {
+  theme: ThemeMode;
+  onToggleTheme: () => void;
+};
+
+const Header = ({ theme, onToggleTheme }: Props) => {
+  const colors = Themes[theme];
+  const themeIcon = theme === "light" ? Icons.sun : Icons.moon;
+
   return (
-    <View style={styles.header}>
-      <View>
-        <Text style={styles.name}>{Profiles.landay.name}</Text>
-        <Text>{Profiles.landay.pronouns}</Text>
+    <View style={[styles.header, { backgroundColor: colors.bg }]}>
+      {/* Name + pronouns */}
+      <View style={styles.leftCol}>
+        <Text numberOfLines={1} style={[styles.name, { color: colors.text }]}>
+          {Profiles.landay.name}
+        </Text>
+        <Text
+          numberOfLines={1}
+          style={[styles.pronouns, { color: colors.text }]}
+        >
+          {Profiles.landay.pronouns}
+        </Text>
       </View>
-      <Image
-        source={Icons.sun /* For dark mode, use Icons.moon */}
-        style={styles.headerIcon}
-      />
+
+      {/* theme toggle */}
+      <Pressable
+        onPress={() => {
+          console.log("Theme changed"); // debugging
+          onToggleTheme();
+        }}
+        style={styles.iconButton}
+        hitSlop={15}
+        accessibilityLabel="Toggle theme"
+        accessibilityRole="button"
+      >
+        <Image
+          source={themeIcon}
+          style={styles.headerIcon}
+          resizeMode="contain"
+        />
+      </Pressable>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  headerIcon: {
-    height: windowWidth * 0.1,
-    width: windowWidth * 0.1,
-  },
   header: {
     flexDirection: "row",
-    // fill the rest of this in!
-    
+    alignItems: "center",
+    justifyContent: "space-between",
+    alignSelf: "stretch",
+    paddingTop: 16,
+    paddingBottom: 8,
+    paddingHorizontal: 16,
+    zIndex: 10,
   },
-  name: {
-    // We've loaded this font for you in App.js
-    fontFamily: "Sydney-Bold", // 'Sydney' is the non-bold version
+  leftCol: { flexShrink: 1 },
+  name: { fontFamily: "Sydney-Serial-Bold", fontSize: 32, lineHeight: 36 },
+  pronouns: { marginTop: 4, fontSize: 16, lineHeight: 20, opacity: 0.8 },
+  iconButton: {
+    padding: 6,
+    borderRadius: 50,
+    alignItems: "center",
+    justifyContent: "center",
   },
-  // add more styles for other components!
+  headerIcon: {
+    height: windowWidth * 0.08,
+    width: windowWidth * 0.08,
+  },
 });
 
 export default Header;

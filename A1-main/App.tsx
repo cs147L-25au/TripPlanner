@@ -1,60 +1,39 @@
-/**
- * You don't need to edit this file, but you can if you want!
- * Almost of the work for this assignment is in Header.js, Body.js, and Footer.js.
- * 
- * If you're doing the light/dark mode toggle extension, you will need to make
- * a couple tweaks here.
- */
-
-import { useCallback } from "react";
-import { StyleSheet, View, StatusBar } from "react-native";
-
-import { useFonts } from "expo-font";
-import * as SplashScreen from "expo-splash-screen";
-
-import { Themes } from "./assets/Themes";
+import React, { useState } from "react";
+import { SafeAreaView, StatusBar, View, StyleSheet } from "react-native";
 import Header from "./app/components/Header";
 import Body from "./app/components/Body";
 import Footer from "./app/components/Footer";
+import { Themes } from "./assets/Themes";
 
-/* Keep the splash screen visible while we fetch resources */
-SplashScreen.preventAutoHideAsync();
+export type ThemeMode = "light" | "dark";
 
 export default function App() {
-
-  /* BEGIN FONT LOADING CODE -- You don't need to touch this section unless you want to. */
-  const [fontsLoaded] = useFonts({
-    Sydney: require("./assets/Fonts/Sydney-Serial-Regular.ttf"),
-    "Sydney-Bold": require("./assets/Fonts/Sydney-Serial-Bold.ttf"),
-  });
-
-  const onLayoutRootView = useCallback(async () => {
-    if (fontsLoaded) {
-      await SplashScreen.hideAsync();
-    }
-  }, [fontsLoaded]);
-
-  if (!fontsLoaded) return null;
-  /* END FONT LOADING CODE */
-
-  // If you want to use dark mode, change this accordingly.
-  StatusBar.setBarStyle(Themes.light.statusBar);
+  const [theme, setTheme] = useState<ThemeMode>("light");
+  const colors = Themes[theme];
 
   return (
-    <View style={styles.container} onLayout={onLayoutRootView}>
-      <Header />
-      <Body />
-      <Footer />
-    </View>
+    <SafeAreaView style={[styles.safe, { backgroundColor: colors.bg }]}>
+      <StatusBar
+        barStyle={theme === "light" ? "dark-content" : "light-content"}
+      />
+      <View style={[styles.container, { backgroundColor: colors.bg }]}>
+        <Header
+          theme={theme}
+          onToggleTheme={() =>
+            setTheme((t) => (t === "light" ? "dark" : "light"))
+          }
+        />
+        <View style={styles.bodyHolder}>
+          <Body theme={theme} />
+        </View>
+        <Footer theme={theme} />
+      </View>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  // Feel free to change this if you want!
-  container: {
-    flex: 1,
-    backgroundColor: Themes.light.bg,
-    alignItems: "center",
-    paddingHorizontal: 16,
-  },
+  safe: { flex: 1 },
+  container: { flex: 1 },
+  bodyHolder: { flex: 1 },
 });
