@@ -12,7 +12,7 @@ import * as Clipboard from "expo-clipboard";
 import { PaletteColor } from "../types";
 
 const { width } = Dimensions.get("window");
-const SWATCH_SIZE = (width * 0.9 - 16) / 5; // 5 swatches with small gaps
+const SWATCH_SIZE = (width * 0.9 - 16) / 5; // 5 swatches with some spacing
 
 type PaletteSectionProps = {
   palette: PaletteColor[];

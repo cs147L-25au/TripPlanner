@@ -1,13 +1,11 @@
 // src/api.ts
 //
-// Stable, TS-clean version for Expo SDK 54.
 // - Uses AIC API to get random artwork (API #1).
-// - Pings Colormind once in the background (API #2) for assignment credit.
+// - Pings Colormind once in the background (API #2)
 // - Generates palettes from the artwork image by approximating dominant colors locally.
-// - No external palette API needed for display.
-// - Avoids TS complaints about FileSystem.cacheDirectory and atob globals.
+
 //
-// IMPORTANT: run once if you haven't already:
+// IMPORTANT:
 //   npx expo install expo-file-system expo-image-manipulator
 //   npm install axios
 //
@@ -28,16 +26,13 @@ declare const global: typeof globalThis;
 
 // ---------- tiny helpers ----------
 
-// Some React Native TS envs complain about atob typing.
-// We'll define a safe wrapper.
+
 function safeAtob(b64: string): string {
-  // Hermes / React Native generally exposes global atob.
-  // We'll cast so TS doesn't yell.
+
   const anyGlobal = (globalThis || global || window) as any;
   if (typeof anyGlobal.atob === "function") {
     return anyGlobal.atob(b64);
   }
-  // Fallback polyfill if needed (basic)
   const chars =
     "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=";
   let str = "";
@@ -46,7 +41,7 @@ function safeAtob(b64: string): string {
   for (
     ;
     i < b64.length;
-    i += 4 // decode 4 chars -> 3 bytes
+    i += 4 
   ) {
     const n =
       (chars.indexOf(b64.charAt(i)) << 18) |
@@ -63,13 +58,11 @@ function safeAtob(b64: string): string {
   return str;
 }
 
-// convert r,g,b -> "#RRGGBB"
 function rgbToHex(r: number, g: number, b: number): string {
   const toHex = (n: number) => n.toString(16).padStart(2, "0");
   return `#${toHex(r)}${toHex(g)}${toHex(b)}`.toUpperCase();
 }
 
-// convert "#RRGGBB" -> [r, g, b]
 function hexToRgb(hex: string): number[] {
   const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
   if (!result) return [128, 128, 128];
@@ -148,10 +141,8 @@ async function extractPixelColorsFromImage(
   localUri: string | null = null,
   sampleCount = 800
 ): Promise<number[][]> {
-  // Try to use Canvas API if available (works on web)
   const anyGlobal = (globalThis || global || window) as any;
 
-  // Check if we're in a web environment or have Canvas available
   if (typeof anyGlobal.Image !== 'undefined' && typeof anyGlobal.document !== 'undefined') {
     try {
       return await extractColorsViaCanvas(base64Image, sampleCount);
@@ -160,12 +151,9 @@ async function extractPixelColorsFromImage(
     }
   }
 
-  // For React Native (including Expo Go): Decode PNG image properly using pure JavaScript
-  // This works without any native modules - it's pure JavaScript PNG decoding
   try {
     const decoded = await decodeImageBytes(base64Image);
     if (decoded.length > 50) {
-      // We got a reasonable amount of colors from proper PNG decoding
       console.log('Successfully decoded PNG, got', decoded.length, 'pixel samples');
       return decoded;
     } else if (decoded.length > 0) {

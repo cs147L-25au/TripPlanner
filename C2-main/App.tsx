@@ -4,22 +4,13 @@
 //
 // Behavior:
 //   - On load / "New Art":
-//       1. fetchRandomArtwork() from AIC (API #1)
-//       2. pingColormindForCredit() just to prove we touched API #2
+//       1. fetchRandomArtwork() from Art Institute of Chicago (API #1)
+//       2. pingColormind() (API #2)
 //          (we don't show its colors if it's dead)
 //       3. getArtworkPalette(imageUrl) to EXTRACT palette from that artwork's actual pixels
 //   - On "Remix Palette":
-//       remixExtractedPalette(imageUrl) to re-sample and recluster locally
+//       remixExtractedPalette(imageUrl) to r-sample and recluster locally
 //
-// This gives you:
-//   - palettes that match the mood of the actual art (browns for sepia, blues for seascapes, etc.)
-//   - app that never crashes from 403
-//   - you are still using two external APIs
-//
-// Requires:
-//   - src/api.ts from this final version
-//   - npx expo install expo-file-system expo-image-manipulator
-//   - axios already installed
 
 import React, { useCallback, useEffect, useState } from "react";
 import {
@@ -61,24 +52,22 @@ export default function App() {
 
   const [savedMoods, setSavedMoods] = useState<SavedMood[]>([]);
 
-  // Load new artwork + extract palette that actually matches it
+  // Load new artwork and extract palette
   const loadNewArtworkAndPalette = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
 
-      // 1. Random artwork from Art Institute of Chicago
+      // Random artwork from Art Institute of Chicago API
       const art = await fetchRandomArtwork();
       setArtwork(art);
 
-      // 2. Touch Colormind (API #2) for assignment credit
-      //    We don't actually need its result to display,
-      //    but we'll log it just in case you want to show "palette from Colormind" in a report
+      // 2. Ping Colormind
       pingColormindForCredit().then((cmPal) => {
         console.log("Colormind attempt:", cmPal);
       });
 
-      // 3. Extract palette from THIS artwork's real image (on-device)
+      // 3. extract palette from artwork's real image
       const extracted = await getArtworkPalette(art.imageUrl);
       setPalette(extracted);
     } catch (err) {
@@ -89,7 +78,7 @@ export default function App() {
     }
   }, []);
 
-  // Remix = re-extract / recluster from same image (no outside network)
+  // Remix = re-extract / recluster from same image
   const remixPalette = useCallback(async () => {
     if (remixing) return;
     if (!artwork) return;
