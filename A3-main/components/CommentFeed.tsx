@@ -32,10 +32,18 @@ export default function CommentFeed({ postId }: CommentFeedProps) {
         );
       }
 
-      // ================================
-      // TODO: Write the code to fetch the comments from the comments table
-      // Write your code here
-      // ================================
+      // fetching raw comments for the post, rendering them with Post component
+      const { data, error } = await db
+        .from("comments")
+        .select("*")
+        .eq("post_id", postId)
+        .order("timestamp", { ascending: true });
+
+      if (error) {
+        throw error;
+      }
+
+      setComments(data ?? []);
     } catch (error) {
       console.error("Error fetching comments:", error);
     } finally {
@@ -44,10 +52,30 @@ export default function CommentFeed({ postId }: CommentFeedProps) {
     }
   };
 
-  // ================================
-  // TODO: Write the code to trigger the comment fetching code when this component mounts
-  // Write your code here
-  // ================================
+  useEffect(() => {
+    if (!session) return;
+
+    fetchComments();
+
+    // realtime comment changes to keep the thread live
+    const channel = db
+      .channel(`comments-${postId}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "comments",
+          filter: `post_id=eq.${postId}`,
+        },
+        () => fetchComments()
+      )
+      .subscribe();
+
+    return () => {
+      db.removeChannel(channel);
+    };
+  }, [session, postId]);
 
   if (isLoading && !isRefreshing) {
     return <Loading />;

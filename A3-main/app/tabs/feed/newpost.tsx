@@ -34,12 +34,23 @@ export default function NewPost() {
         throw new Error("Session not found. You must be signed in to post");
       }
 
-      const newPost: PostInsert = undefined;
+      const trimmedText = inputText.trim();
+      const alias = username?.trim();
 
-      // ================================
-      // TODO: Write the code to submit a post to the posts table
-      // Write your code here
-      // ================================
+      const newPost: PostInsert = {
+        text: trimmedText,
+        user_id: session.user.id,
+        username: alias && alias.length > 0 ? alias : "Anonymous", // storing author alias up front
+      };
+
+      const { error } = await db.from("raw_posts").insert(newPost); // inserting into raw_posts so view can recalc counts
+      if (error) {
+        throw error;
+      }
+
+      setInputText("");
+      setUsername(null);
+      router.back(); // Modal closes right as submission succeeds
 
       Alert.alert("Post submitted");
     } catch (error) {
@@ -51,7 +62,7 @@ export default function NewPost() {
     }
   };
 
-  const submitDisabled = isLoading || inputText.length === 0;
+  const submitDisabled = isLoading || inputText.trim().length === 0;
 
   useLayoutEffect(() => {
     navigation.setOptions({

@@ -11,6 +11,7 @@ import {
 } from "react-native";
 
 import { useLocalSearchParams } from "expo-router";
+import { useSafeAreaInsets } from "react-native-safe-area-context"; // offsets keyboard based on safe area
 
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 
@@ -38,6 +39,7 @@ export default function Details() {
   const [isLoading, setIsLoading] = useState(false);
 
   const session = useSession();
+  const insets = useSafeAreaInsets(); // needed to push the input above the iOS home indicator
 
   const localSearchParams = useLocalSearchParams<LocalSearchParamsType>();
 
@@ -62,12 +64,19 @@ export default function Details() {
         throw new Error("Session not found. You must be signed in to comment");
       }
 
-      const newComment: CommentInsert = undefined;
+      const newComment: CommentInsert = {
+        post_id: postDetails.id,
+        user_id: session.user.id,
+        text: inputText.trim(),
+        username: session.user.user_metadata?.username ?? "Anonymous", // no custom alias per comment
+      };
 
-      // ================================
-      // TODO: Write the code to submit a comment to the comments table
-      // Write your code here
-      // ================================
+      const { error } = await db.from("comments").insert(newComment); // inserting directly into table of base comments
+      if (error) {
+        throw error;
+      }
+
+      setInputText("");
 
       Alert.alert("Comment submitted");
     } catch (error) {
@@ -79,12 +88,13 @@ export default function Details() {
     }
   };
 
-  const submitDisabled = isLoading || inputText.length === 0;
+  const submitDisabled = isLoading || inputText.trim().length === 0;
 
   return (
     <View style={styles.container}>
       <Post
         id={postDetails.id}
+        userId={postDetails.user_id}
         username={postDetails.username}
         timestamp={postDetails.timestamp}
         text={postDetails.text}
@@ -92,10 +102,10 @@ export default function Details() {
         currentUserVote={postDetails.current_user_vote}
         commentCount={postDetails.comment_count}
       />
-      {/* This component pushes up the view when the keyboard is open so that it's still visible. */}
+      {}
       <KeyboardAvoidingView
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
-        keyboardVerticalOffset={Platform.OS === "ios" ? 65 : 0}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        keyboardVerticalOffset={Platform.OS === "ios" ? 80 + insets.top : 0} // accounts for header + notch so the textbox clears the keyboard
         style={styles.keyboardContainer}
       >
         <CommentFeed postId={postDetails.id} />

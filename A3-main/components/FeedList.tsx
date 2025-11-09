@@ -15,11 +15,13 @@ import type { PostSelect } from "@/types";
 type FeedListProps = {
   shouldNavigateToComments?: boolean;
   fetchUsersPostsOnly?: boolean;
+  sortBy?: "new" | "top"; // extension: support multiple ranking modes
 };
 
 export default function FeedList({
   shouldNavigateToComments = false,
   fetchUsersPostsOnly = false,
+  sortBy = "new",
 }: FeedListProps) {
   const [posts, setPosts] = useState<PostSelect[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(false);
@@ -28,10 +30,34 @@ export default function FeedList({
   const session = useSession();
 
   useEffect(() => {
-    if (session) {
-      fetchPosts();
-    }
-  }, [session]);
+    if (!session) return;
+
+    fetchPosts();
+
+
+    const channel = db
+      .channel(`posts-updates-${sortBy}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "raw_posts" },
+        () => fetchPosts()
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "likes" },
+        () => fetchPosts()
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "comments" },
+        () => fetchPosts()
+      )
+      .subscribe();
+
+    return () => {
+      db.removeChannel(channel);
+    };
+  }, [session, sortBy]);
 
   const fetchPosts = async () => {
     if (isLoading) return;
@@ -45,10 +71,29 @@ export default function FeedList({
         );
       }
 
-      // ================================
-      // TODO: Write the code to fetch the posts from the posts table
-      // Write your code here
-      // ================================
+      let query = db.from("posts").select("*");
+
+      if (sortBy === "top") {
+        // Top feed sorts by like count first
+        query = query
+          .order("like_count", { ascending: false })
+          .order("timestamp", { ascending: false });
+      } else {
+        // default feed is chronological
+        query = query.order("timestamp", { ascending: false });
+      }
+
+      if (fetchUsersPostsOnly) {
+        query = query.eq("user_id", session.user.id);
+      }
+
+      const { data, error } = await query;
+
+      if (error) {
+        throw error;
+      }
+
+      setPosts(data ?? []);
     } catch (error) {
       console.error("Error fetching posts:", error);
       Alert.alert("Error fetching posts");
@@ -72,6 +117,7 @@ export default function FeedList({
         <Post
           shouldNavigateOnPress={shouldNavigateToComments}
           id={item.id}
+          userId={item.user_id}
           username={item.username ?? "Anonymous"}
           timestamp={timeAgo(item.timestamp)}
           text={item.text}

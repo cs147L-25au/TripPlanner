@@ -13,6 +13,7 @@ import { LikeInsert } from "@/types";
 type PostProps = {
   shouldNavigateOnPress?: boolean;
   id: string;
+  userId: string; // keeps track of the author when navigating to details
   username: string | null;
   timestamp: string;
   text: string;
@@ -24,6 +25,7 @@ type PostProps = {
 export default function Post({
   shouldNavigateOnPress = false,
   id,
+  userId,
   username,
   timestamp,
   text,
@@ -38,7 +40,7 @@ export default function Post({
   const session = useSession();
 
   const submitVote = async (newVote: -1 | 0 | 1) => {
-    // Don't prevent the user from submitting multiple votes using if (isLoading), subsequent votes will overwrite the previous vote.
+    // don't prevent the user from submitting multiple votes using if (isLoading), subsequent votes overwrite previous ones
     setIsLoading(true);
 
     try {
@@ -47,17 +49,23 @@ export default function Post({
         throw new Error("Session not found. You must be signed in to vote");
       }
 
-      const newLike: LikeInsert = undefined;
+      const newLike: LikeInsert = {
+        post_id: id,
+        user_id: session.user.id,
+        vote: newVote,
+      };
 
-      // Optimistic update
       setScore(score + (newVote - vote));
       setVote(newVote);
 
-      // ================================
-      // TODO: Write the code to submit a vote to the likes table
-      // Hint: You will need to use an UPSERT to submit the vote to the likes table.
-      // Write your code here
-      // ================================
+      // upsert makes whichever vote user chooses overwrite previous vote
+      const { error } = await db
+        .from("likes")
+        .upsert(newLike, { onConflict: "user_id,post_id" });
+
+      if (error) {
+        throw error;
+      }
     } catch (error) {
       console.error("Error submitting vote:", error);
       Alert.alert("Error submitting vote");
@@ -94,13 +102,24 @@ export default function Post({
   );
 
   if (shouldNavigateOnPress) {
-    // ================================
-    // TODO: Change the props on the Link component to
-    // pass the necessary params from the relevant post
-    // Write your code in the <Link> component below
-    // ================================
+    // detils screen can render without re-fetching
     post = (
-      <Link href={"/tabs/feed/details"} asChild={true} style={styles.content}>
+      <Link
+        href={{
+          pathname: "/tabs/feed/details",
+          params: {
+            id,
+            username: username ?? "Anonymous",
+            timestamp,
+            text,
+            like_count: String(score),
+            current_user_vote: String(vote),
+            comment_count: String(commentCount),
+            user_id: userId,
+          },
+        }}
+        asChild={true}
+      >
         {post}
       </Link>
     );
@@ -154,7 +173,6 @@ const styles = StyleSheet.create({
   container: {
     width: "100%",
     alignItems: "center",
-    // padding: 24,
     paddingVertical: 12,
     paddingLeft: 20,
     paddingRight: 8,
@@ -209,7 +227,7 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     fontSize: Theme.sizes.textLarge,
   },
-  // Make sure the buttons have a lot of padding to increase the area of the touch target.
+  // padding for buttons
   upvoteButton: {
     paddingHorizontal: 12,
     paddingTop: 8,
