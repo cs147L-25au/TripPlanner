@@ -25,6 +25,7 @@ type DailyRow = {
   diary: string | null;
   palette_hexes: string[] | null;
   artwork_title: string | null;
+  artwork_image_url: string | null;
 };
 
 const mapStudioRow = (row: StudioRow): StudioMood => ({
@@ -44,6 +45,7 @@ const mapDailyRow = (row: DailyRow): DailyMoodEntry => ({
   diary: row.diary ?? "",
   palette: (row.palette_hexes ?? []).map((hex) => ({ hex })),
   artworkTitle: row.artwork_title ?? undefined,
+  artworkImageUrl: row.artwork_image_url ?? undefined,
 });
 
 export async function fetchStudioMoods(): Promise<StudioMood[]> {
@@ -114,6 +116,7 @@ export async function upsertDailyMood(payload: {
   diary: string;
   palette: PaletteColor[];
   artworkTitle?: string;
+  artworkImageUrl?: string;
 }): Promise<DailyMoodEntry> {
   const supabase = requireSupabaseClient();
   const entryDateOnly = payload.entryDate.slice(0, 10);
@@ -123,6 +126,7 @@ export async function upsertDailyMood(payload: {
     diary: payload.diary,
     palette_hexes: payload.palette.map((p) => p.hex),
     artwork_title: payload.artworkTitle ?? null,
+    artwork_image_url: payload.artworkImageUrl ?? null,
   };
 
   const { data, error } = await supabase

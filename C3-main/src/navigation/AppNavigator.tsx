@@ -9,6 +9,7 @@ import StudioScreen from "../screens/StudioScreen";
 import MoodCalendarScreen from "../screens/MoodCalendarScreen";
 import MoodComposerScreen from "../screens/MoodComposerScreen";
 import MoodDetailScreen from "../screens/MoodDetailScreen";
+import StudioSaveScreen from "../screens/StudioSaveScreen";
 import {
   DailyMoodEntry,
   PaletteColor,
@@ -22,6 +23,14 @@ export type RootStackParamList = {
     artworkTitle: string;
     artistName: string;
     entryDate: string;
+    artworkImageUrl?: string | null;
+  };
+  StudioSave: {
+    palette: PaletteColor[];
+    artworkTitle: string;
+    artistName: string;
+    recordedFor: string;
+    note?: string;
   };
   MoodDetail: {
     entryType: "studio" | "daily";
@@ -79,7 +88,13 @@ function MainTabs() {
 
 export default function AppNavigator() {
   return (
-    <RootStackNavigator>
+    <RootStackNavigator
+      screenOptions={{
+        headerBackTitle: "Back",
+        headerTintColor: "#111",
+        headerBackTitleVisible: true,
+      }}
+    >
       <RootStack.Screen
         name="MainTabs"
         component={MainTabs}
@@ -90,6 +105,14 @@ export default function AppNavigator() {
         component={MoodComposerScreen}
         options={{
           title: "Log Today's Mood",
+          presentation: "modal",
+        }}
+      />
+      <RootStack.Screen
+        name="StudioSave"
+        component={StudioSaveScreen}
+        options={{
+          title: "Save to Studio",
           presentation: "modal",
         }}
       />

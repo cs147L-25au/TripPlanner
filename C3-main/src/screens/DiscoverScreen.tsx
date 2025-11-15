@@ -9,6 +9,7 @@ import {
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 import Header from "../components/Header";
 import ArtworkCard from "../components/ArtworkCard";
@@ -22,7 +23,6 @@ import {
   remixExtractedPalette,
 } from "../api";
 import { Artwork, PaletteColor } from "../types";
-import { saveMoodToStudio } from "../services/moodService";
 import { RootStackParamList } from "../navigation/AppNavigator";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 
@@ -32,7 +32,6 @@ export default function DiscoverScreen() {
 
   const [loading, setLoading] = useState(true);
   const [remixing, setRemixing] = useState(false);
-  const [savingStudio, setSavingStudio] = useState(false);
 
   const [artwork, setArtwork] = useState<Artwork | null>(null);
   const [palette, setPalette] = useState<PaletteColor[]>([]);
@@ -75,35 +74,30 @@ export default function DiscoverScreen() {
     }
   }, [remixing, artwork]);
 
-  const saveStudioMood = useCallback(async () => {
+  const openStudioSave = useCallback(() => {
     if (!artwork || palette.length === 0) {
       Alert.alert("Nothing to save", "Load an artwork first.");
       return;
     }
 
-    try {
-      setSavingStudio(true);
-      await saveMoodToStudio({
-        artworkTitle: artwork.title,
-        artistName: artwork.artist,
-        palette,
-        recordedFor: new Date().toISOString(),
-      });
-      Alert.alert("Saved ✨", "Mood stored in your Studio.");
-    } catch (err: any) {
-      console.error(err);
-      Alert.alert(
-        "Save failed",
-        err?.message ?? "Could not reach the Studio database."
-      );
-    } finally {
-      setSavingStudio(false);
-    }
-  }, [artwork, palette]);
+    navigation.navigate("StudioSave", {
+      palette,
+      artworkTitle: artwork.title || "Untitled",
+      artistName: artwork.artist || "Unknown Artist",
+      recordedFor: new Date().toISOString(),
+    });
+  }, [artwork, palette, navigation]);
 
   const logTodayMood = useCallback(() => {
     if (!artwork || palette.length === 0) {
       Alert.alert("Load an artwork first", "Generate a palette to log it.");
+      return;
+    }
+    if (!artwork.imageUrl) {
+      Alert.alert(
+        "Image unavailable",
+        "This artwork lacks a shareable image. Load new art before logging today."
+      );
       return;
     }
 
@@ -112,6 +106,7 @@ export default function DiscoverScreen() {
       artworkTitle: artwork.title || "Untitled",
       artistName: artwork.artist || "Unknown Artist",
       entryDate: new Date().toISOString(),
+      artworkImageUrl: artwork.imageUrl,
     });
   }, [artwork, palette, navigation]);
 
@@ -120,45 +115,51 @@ export default function DiscoverScreen() {
   }, [loadNewArtworkAndPalette]);
 
   return (
-    <ScrollView
-      style={styles.scroll}
-      contentContainerStyle={styles.scrollContent}
-    >
-      <Header onNewArt={loadNewArtworkAndPalette} />
+    <SafeAreaView style={styles.safeArea}>
+      <ScrollView
+        style={styles.scroll}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+        bounces={false}
+        alwaysBounceVertical={false}
+      >
+        <Header onNewArt={loadNewArtworkAndPalette} />
 
-      <ArtworkCard artwork={artwork} loading={loading} />
+        <ArtworkCard artwork={artwork} loading={loading} />
 
-      <PaletteSection palette={palette} />
+        <PaletteSection palette={palette} />
 
-      <ActionsRow
-        onRemix={remixPalette}
-        onSave={saveStudioMood}
-        saving={savingStudio}
-      />
+        <ActionsRow onRemix={remixPalette} onSave={openStudioSave} />
 
-      <TouchableOpacity style={styles.logBtn} onPress={logTodayMood}>
-        <Ionicons name="book" color="#fff" size={16} />
-        <Text style={styles.logBtnText}>Log Today&apos;s Mood</Text>
-      </TouchableOpacity>
+        <TouchableOpacity style={styles.logBtn} onPress={logTodayMood}>
+          <Ionicons name="book" color="#fff" size={16} />
+          <Text style={styles.logBtnText}>Log Today&apos;s Mood</Text>
+        </TouchableOpacity>
 
-      {error ? (
-        <View style={styles.errorBox}>
-          <Text style={styles.errorText}>{error}</Text>
-        </View>
-      ) : null}
+        {error ? (
+          <View style={styles.errorBox}>
+            <Text style={styles.errorText}>{error}</Text>
+          </View>
+        ) : null}
 
-      <View style={{ height: 24 }} />
-    </ScrollView>
+        <View style={{ height: 24 }} />
+      </ScrollView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: "#fafafa",
+  },
   scroll: {
     flex: 1,
     backgroundColor: "#fafafa",
   },
   scrollContent: {
     paddingBottom: 24,
+    flexGrow: 1,
   },
   logBtn: {
     width: "90%",

@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import {
   Alert,
+  Image,
   ScrollView,
   StyleSheet,
   Text,
@@ -11,6 +12,7 @@ import {
 import { RouteProp, useNavigation, useRoute } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { format } from "date-fns";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 import PaletteSection from "../components/PaletteSection";
 import { RootStackParamList } from "../navigation/AppNavigator";
@@ -21,7 +23,7 @@ type MoodComposerRoute = RouteProp<RootStackParamList, "MoodComposer">;
 export default function MoodComposerScreen() {
   const navigation =
     useNavigation<NativeStackNavigationProp<RootStackParamList>>();
-  const { palette, artworkTitle, artistName, entryDate } =
+  const { palette, artworkTitle, artistName, entryDate, artworkImageUrl } =
     useRoute<MoodComposerRoute>().params;
 
   const [emoji, setEmoji] = useState("🙂");
@@ -41,6 +43,7 @@ export default function MoodComposerScreen() {
         diary,
         palette,
         artworkTitle,
+        artworkImageUrl,
       });
       navigation.replace("MoodDetail", {
         entryType: "daily",
@@ -55,14 +58,16 @@ export default function MoodComposerScreen() {
   }
 
   return (
-    <ScrollView
-      contentContainerStyle={styles.content}
-      style={styles.container}
-    >
-      <View style={styles.metaCard}>
-        <Text style={styles.metaLabel}>Artwork</Text>
-        <Text style={styles.metaTitle}>{artworkTitle}</Text>
-        <Text style={styles.metaSubtitle}>{artistName}</Text>
+    <SafeAreaView style={styles.container}>
+      <ScrollView contentContainerStyle={styles.content}>
+        <View style={styles.metaCard}>
+          <Text style={styles.metaLabel}>Artwork</Text>
+          <Text style={styles.metaTitle}>{artworkTitle}</Text>
+          <Text style={styles.metaSubtitle}>{artistName}</Text>
+
+          {artworkImageUrl ? (
+            <Image source={{ uri: artworkImageUrl }} style={styles.heroImage} />
+          ) : null}
 
         <View style={styles.metaRow}>
           <View>
@@ -98,16 +103,17 @@ export default function MoodComposerScreen() {
         />
       </View>
 
-      <TouchableOpacity
-        style={[styles.saveBtn, saving ? styles.saveBtnDisabled : null]}
-        onPress={saveEntry}
-        disabled={saving}
-      >
-        <Text style={styles.saveBtnText}>
-          {saving ? "Saving…" : "Save to Mood Calendar"}
-        </Text>
-      </TouchableOpacity>
-    </ScrollView>
+        <TouchableOpacity
+          style={[styles.saveBtn, saving ? styles.saveBtnDisabled : null]}
+          onPress={saveEntry}
+          disabled={saving}
+        >
+          <Text style={styles.saveBtnText}>
+            {saving ? "Saving…" : "Save to Mood Calendar"}
+          </Text>
+        </TouchableOpacity>
+      </ScrollView>
+    </SafeAreaView>
   );
 }
 
@@ -141,6 +147,12 @@ const styles = StyleSheet.create({
   },
   metaSubtitle: {
     color: "#555",
+    marginBottom: 16,
+  },
+  heroImage: {
+    width: "100%",
+    height: 200,
+    borderRadius: 12,
     marginBottom: 16,
   },
   metaRow: {

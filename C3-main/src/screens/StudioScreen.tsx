@@ -9,6 +9,7 @@ import {
 } from "react-native";
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import { format } from "date-fns";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 import { fetchStudioMoods } from "../services/moodService";
 import { StudioMood } from "../types";
@@ -43,7 +44,7 @@ export default function StudioScreen() {
   );
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       <Text style={styles.heading}>Your Studio</Text>
       <Text style={styles.subheading}>
         Every palette you tap “Save” flows into this collection.
@@ -106,7 +107,7 @@ export default function StudioScreen() {
           </View>
         }
       />
-    </View>
+    </SafeAreaView>
   );
 }
 

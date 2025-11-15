@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
+  Image,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -20,6 +21,7 @@ import {
   startOfWeek,
   subMonths,
 } from "date-fns";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 import { fetchDailyMoodsInRange } from "../services/moodService";
 import { DailyMoodEntry } from "../types";
@@ -81,7 +83,7 @@ export default function MoodCalendarScreen() {
   }, [monthCursor, loadEntries]);
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       <View style={styles.headerRow}>
         <TouchableOpacity
           style={styles.monthBtn}
@@ -140,9 +142,18 @@ export default function MoodCalendarScreen() {
                 {day.getDate()}
               </Text>
               {entry ? (
-                <View style={styles.emojiBubble}>
-                  <Text style={styles.emojiText}>{entry.emoji}</Text>
-                </View>
+                entry.artworkImageUrl ? (
+                  <View style={styles.artPreview}>
+                    <Image
+                      source={{ uri: entry.artworkImageUrl }}
+                      style={styles.artPreviewImage}
+                    />
+                  </View>
+                ) : (
+                  <View style={styles.artPreviewPlaceholder}>
+                    <Text style={styles.thumbEmoji}>{entry.emoji}</Text>
+                  </View>
+                )
               ) : null}
             </TouchableOpacity>
           );
@@ -159,10 +170,10 @@ export default function MoodCalendarScreen() {
       {error ? <Text style={styles.errorText}>{error}</Text> : null}
 
       <Text style={styles.helperCopy}>
-        Tap a day with an emoji to revisit that story. Create new entries from
-        the Discover tab using “Log Today&apos;s Mood”.
+        Tap a day with art to revisit that story. Create new entries from the
+        Discover tab using “Log Today&apos;s Mood”.
       </Text>
-    </View>
+    </SafeAreaView>
   );
 }
 
@@ -211,9 +222,9 @@ const styles = StyleSheet.create({
   },
   dayCell: {
     width: `${100 / 7}%`,
-    paddingVertical: 18,
+    paddingVertical: 12,
     alignItems: "center",
-    justifyContent: "center",
+    justifyContent: "space-between",
     borderColor: "#f3f3f3",
     borderRightWidth: 1,
     borderBottomWidth: 1,
@@ -229,16 +240,30 @@ const styles = StyleSheet.create({
   dayNumberMuted: {
     color: "#bbb",
   },
-  emojiBubble: {
-    marginTop: 6,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    backgroundColor: "#111",
-    borderRadius: 12,
+  artPreview: {
+    width: "80%",
+    aspectRatio: 1,
+    borderRadius: 10,
+    overflow: "hidden",
+    marginTop: 4,
+    backgroundColor: "#eee",
   },
-  emojiText: {
+  artPreviewImage: {
+    width: "100%",
+    height: "100%",
+  },
+  artPreviewPlaceholder: {
+    width: "80%",
+    aspectRatio: 1,
+    borderRadius: 10,
+    marginTop: 4,
+    backgroundColor: "#111",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  thumbEmoji: {
     color: "#fff",
-    fontSize: 12,
+    fontSize: 18,
   },
   todayOutline: {
     borderWidth: 1,

@@ -32,6 +32,7 @@ export type DailyMoodEntry = {
   diary: string;
   palette: PaletteColor[];
   artworkTitle?: string;
+  artworkImageUrl?: string;
 };
 
 // ---- External API response types ----

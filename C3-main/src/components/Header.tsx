@@ -8,6 +8,7 @@ import {
   ViewStyle,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 type HeaderProps = {
   onNewArt: () => void;
@@ -15,8 +16,16 @@ type HeaderProps = {
 };
 
 export default function Header({ onNewArt, containerStyle }: HeaderProps) {
+  const insets = useSafeAreaInsets();
+
   return (
-    <View style={[styles.container, containerStyle]}>
+    <View
+      style={[
+        styles.container,
+        { paddingTop: insets.top + 12 },
+        containerStyle,
+      ]}
+    >
       <Text style={styles.title}>PaletteFM</Text>
 
       <TouchableOpacity style={styles.newArtBtn} onPress={onNewArt}>
@@ -30,7 +39,6 @@ export default function Header({ onNewArt, containerStyle }: HeaderProps) {
 const styles = StyleSheet.create({
   container: {
     paddingHorizontal: 20,
-    paddingTop: 50, // leave room for notch
     paddingBottom: 16,
     flexDirection: "row",
     alignItems: "flex-end",
