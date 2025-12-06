@@ -1,0 +1,31 @@
+{
+  "expo": {
+    "name": "Collaborative Planner 147",
+    "slug": "collab-planner-147",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "resizeMode": "contain",
+      "backgroundColor": "#b2d8d8"
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.collabplanner147"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#b2d8d8"
+      },
+      "package": "com.collabplanner147"
+    },
+    "scheme": "collab-planner-147",
+    "plugins": [
+      "expo-router"
+    ]
+  }
+}
+
