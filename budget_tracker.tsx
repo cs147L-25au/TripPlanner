@@ -10,10 +10,7 @@ import {
   Platform,
   Modal,
   Dimensions,
-  Animated,
-} from "react-native";
-import { SafeAreaView, SafeAreaProvider } from "react-native-safe-area-context";
-
+  Animated
 interface Expense {
   id: string;
   description: string;
@@ -29,7 +26,7 @@ interface Expense {
 
 interface Balance {
   person: string;
-  balance: number;
+  balance: number; // positive = owed money, negative = owes money
 }
 
 interface Settlement {
@@ -43,42 +40,51 @@ type ViewMode = "expenses" | "summary" | "chart";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
+// Refined warm color palette with deeper accents
 const colors = {
-  primary: "#E85D4C",
-  secondary: "#F4A259",
-  accent: "#4ECDC4",
-  tertiary: "#95C623",
+  // Primary palette - warm sunset tones
+  primary: "#E85D4C", // Warm red-coral
+  secondary: "#F4A259", // Golden amber
+  accent: "#4ECDC4", // Tropical teal
+  tertiary: "#95C623", // Fresh lime
 
-  background: "#FFFAF6",
+  // Background hierarchy
+  background: "#FFFAF6", // Warm cream paper
   surface: "#FFFFFF",
   cardBg: "#FFF9F5",
   elevated: "#FFFFFF",
 
-  text: "#2D2A26",
+  // Text hierarchy
+  text: "#2D2A26", // Warm charcoal
   textSecondary: "#6B6560",
   textMuted: "#A39E98",
   textInverse: "#FFFFFF",
 
+  // Borders
   border: "#E8E0D8",
   borderLight: "#F2EDE8",
   borderFocus: "#E85D4C",
 
-  lodging: "#E85D4C",
-  transport: "#4ECDC4",
-  food: "#F4A259",
-  activities: "#9B5DE5",
-  other: "#6B6560",
+  // Category colors - vibrant and distinct
+  lodging: "#E85D4C", // Warm red
+  transport: "#4ECDC4", // Teal
+  food: "#F4A259", // Golden amber
+  activities: "#9B5DE5", // Purple
+  other: "#6B6560", // Neutral gray
 
-  positive: "#4ECDC4",
-  negative: "#E85D4C",
+  // Status
+  positive: "#4ECDC4", // Teal - you're owed
+  negative: "#E85D4C", // Red - you owe
   neutral: "#6B6560",
   success: "#4ECDC4",
   warning: "#F4A259",
 
+  // Chart colors
   chartBg: "#FFF9F5",
   chartGrid: "#E8E0D8",
 };
 
+// Currency data
 const currencies = [
   { code: "USD", symbol: "$", name: "US Dollar" },
   { code: "EUR", symbol: "€", name: "Euro" },
@@ -88,6 +94,7 @@ const currencies = [
   { code: "AUD", symbol: "A$", name: "Australian Dollar" },
 ];
 
+// Mock exchange rates (in real app, fetch from API)
 const exchangeRates: { [key: string]: number } = {
   USD: 1,
   EUR: 1.08,
@@ -118,6 +125,7 @@ export default function BudgetTrackerScreen() {
   const [showCategoryFilter, setShowCategoryFilter] = useState(false);
   const [showCurrencyModal, setShowCurrencyModal] = useState(false);
 
+  // Sample data
   const teamMembers = ["Claudia", "Sohrab", "Adrian", "Kevin"];
   const trips = ["Summer Trip", "Winter Getaway", "Beach Vacation"];
 
@@ -196,6 +204,7 @@ export default function BudgetTrackerScreen() {
     },
   ]);
 
+  // New expense form state
   const [newDescription, setNewDescription] = useState("");
   const [newAmount, setNewAmount] = useState("");
   const [newCurrency, setNewCurrency] = useState("USD");
@@ -205,11 +214,13 @@ export default function BudgetTrackerScreen() {
   const [newTrip, setNewTrip] = useState("");
   const [newDate, setNewDate] = useState("");
 
+  // Convert amount to base currency
   const convertToBase = (amount: number, fromCurrency: string): number => {
     const rate = exchangeRates[fromCurrency] || 1;
     return amount * rate;
   };
 
+  // Get filtered expenses
   const filteredExpenses = useMemo(() => {
     let filtered = expenses;
     if (selectedTrip !== "All") {
@@ -223,6 +234,7 @@ export default function BudgetTrackerScreen() {
     );
   }, [expenses, selectedTrip, selectedCategory]);
 
+  // Calculate totals
   const totals = useMemo(() => {
     const byCategory: { [key in ExpenseCategory]: number } = {
       lodging: 0,
@@ -243,6 +255,7 @@ export default function BudgetTrackerScreen() {
     return { byCategory, total };
   }, [filteredExpenses]);
 
+  // Calculate balances for current user
   const balances = useMemo(() => {
     const balanceMap: { [person: string]: number } = {};
     teamMembers.forEach((member) => {
@@ -258,12 +271,14 @@ export default function BudgetTrackerScreen() {
       const converted = convertToBase(expense.amount, expense.currency);
       const sharePerPerson = converted / expense.splitBetween.length;
 
+      // The payer is owed by everyone in the split
       expense.splitBetween.forEach((person) => {
         if (person !== expense.paidBy) {
+          // This person owes the payer
           if (person === currentUser) {
-            balanceMap[expense.paidBy] -= sharePerPerson;
+            balanceMap[expense.paidBy] -= sharePerPerson; // I owe them
           } else if (expense.paidBy === currentUser) {
-            balanceMap[person] += sharePerPerson;
+            balanceMap[person] += sharePerPerson; // They owe me
           }
         }
       });
@@ -277,6 +292,7 @@ export default function BudgetTrackerScreen() {
     return result;
   }, [expenses, selectedTrip, currentUser, teamMembers]);
 
+  // Calculate suggested settlements
   const settlements = useMemo((): Settlement[] => {
     const netBalances: { [person: string]: number } = {};
     teamMembers.forEach((member) => {
@@ -292,8 +308,10 @@ export default function BudgetTrackerScreen() {
       const converted = convertToBase(expense.amount, expense.currency);
       const sharePerPerson = converted / expense.splitBetween.length;
 
+      // Payer paid full amount, but should only pay their share
       netBalances[expense.paidBy] += converted - sharePerPerson;
 
+      // Everyone in split owes their share (except payer, handled above)
       expense.splitBetween.forEach((person) => {
         if (person !== expense.paidBy) {
           netBalances[person] -= sharePerPerson;
@@ -301,6 +319,7 @@ export default function BudgetTrackerScreen() {
       });
     });
 
+    // Simplify debts
     const debtors = Object.entries(netBalances)
       .filter(([_, balance]) => balance < -0.01)
       .map(([person, balance]) => ({ person, amount: -balance }))
@@ -338,10 +357,12 @@ export default function BudgetTrackerScreen() {
     return result;
   }, [expenses, selectedTrip, teamMembers]);
 
+  // My total balance
   const myTotalBalance = useMemo(() => {
     return balances.reduce((sum, b) => sum + b.balance, 0);
   }, [balances]);
 
+  // Add expense
   const addExpense = () => {
     if (
       !newDescription.trim() ||
@@ -430,9 +451,10 @@ export default function BudgetTrackerScreen() {
     });
   };
 
+  // Render bar chart
   const renderBarChart = () => {
     const categories = Object.keys(categoryConfig) as ExpenseCategory[];
-    const maxValue = Math.max(...(Object.values(totals.byCategory) as number[]), 1);
+    const maxValue = Math.max(...Object.values(totals.byCategory), 1);
 
     return (
       <View style={styles.chartContainer}>
@@ -465,7 +487,7 @@ export default function BudgetTrackerScreen() {
                 </Text>
               </View>
             );
-          })}
+          }
         </View>
 
         {/* Donut-style summary */}
@@ -522,6 +544,7 @@ export default function BudgetTrackerScreen() {
     );
   };
 
+  // Render summary view
   const renderSummary = () => (
     <View style={styles.summaryContainer}>
       {/* Your balance card */}
@@ -664,6 +687,7 @@ export default function BudgetTrackerScreen() {
     </View>
   );
 
+  // Render expenses list
   const renderExpenses = () => (
     <View style={styles.expensesContainer}>
       {filteredExpenses.length === 0 ? (
@@ -762,7 +786,6 @@ export default function BudgetTrackerScreen() {
   );
 
   return (
-    <SafeAreaProvider>
     <SafeAreaView style={styles.container} edges={["bottom"]}>
       {/* Header */}
       <View style={styles.header}>
@@ -1254,7 +1277,6 @@ export default function BudgetTrackerScreen() {
         </View>
       </Modal>
     </SafeAreaView>
-    </SafeAreaProvider>
   );
 }
 
@@ -1394,6 +1416,7 @@ const styles = StyleSheet.create({
     height: 100,
   },
 
+  // Expenses styles
   expensesContainer: {
     padding: 16,
   },
@@ -1518,6 +1541,7 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
   },
 
+  // Summary styles
   summaryContainer: {
     padding: 16,
   },
@@ -1710,6 +1734,7 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
   },
 
+  // Chart styles
   chartContainer: {
     padding: 16,
   },
@@ -1831,6 +1856,7 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
   },
 
+  // Empty state
   emptyState: {
     alignItems: "center",
     paddingVertical: 60,
@@ -1850,6 +1876,7 @@ const styles = StyleSheet.create({
     color: colors.textMuted,
   },
 
+  // FAB
   fab: {
     position: "absolute",
     right: 20,
@@ -1879,6 +1906,7 @@ const styles = StyleSheet.create({
     lineHeight: 32,
   },
 
+  // Modals
   modalOverlay: {
     flex: 1,
     backgroundColor: "rgba(0, 0, 0, 0.4)",
@@ -1953,6 +1981,7 @@ const styles = StyleSheet.create({
     color: colors.textMuted,
   },
 
+  // Add Modal
   addModalOverlay: {
     flex: 1,
     backgroundColor: "rgba(0, 0, 0, 0.5)",
@@ -2145,6 +2174,6 @@ const styles = StyleSheet.create({
     color: colors.textInverse,
     fontSize: 17,
     fontWeight: "700",
-  },
-});
+  },});
+
 
