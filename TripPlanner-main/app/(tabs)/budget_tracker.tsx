@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect, useRef } from "react";
 import {
   View,
   Text,
@@ -11,8 +11,10 @@ import {
   Modal,
   Dimensions,
   KeyboardAvoidingView,
+  Animated,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { supabase } from "../../lib/supabase";
 
 interface Expense {
   id: string;
@@ -114,11 +116,91 @@ const categoryConfig: {
   transport: { label: "Transport", color: colors.transport, icon: "✈️" },
   food: { label: "Food", color: colors.food, icon: "🍽️" },
   activities: { label: "Activities", color: colors.activities, icon: "🎯" },
-  other: { label: "Other", color: colors.other, icon: "📦" },
+  other: { label: "Other", color: colors.other, icon: "📦"   },
 };
 
+// Sample data for demo account
+const DEMO_SAMPLE_EXPENSES: Expense[] = [
+  {
+    id: "1",
+    description: "Airbnb - 3 nights",
+    amount: 450,
+    currency: "USD",
+    category: "lodging",
+    paidBy: "Kevin",
+    splitBetween: ["Claudia", "Sohrab", "Adrian", "Kevin"],
+    trip: "Summer Trip",
+    date: "2025-06-15",
+    createdAt: new Date("2024-12-01"),
+  },
+  {
+    id: "2",
+    description: "Flight tickets",
+    amount: 320,
+    currency: "USD",
+    category: "transport",
+    paidBy: "Claudia",
+    splitBetween: ["Claudia", "Sohrab"],
+    trip: "Summer Trip",
+    date: "2025-06-15",
+    createdAt: new Date("2024-12-02"),
+  },
+  {
+    id: "3",
+    description: "Welcome dinner",
+    amount: 180,
+    currency: "USD",
+    category: "food",
+    paidBy: "Sohrab",
+    splitBetween: ["Claudia", "Sohrab", "Adrian", "Kevin"],
+    trip: "Summer Trip",
+    date: "2025-06-15",
+    createdAt: new Date("2024-12-03"),
+  },
+  {
+    id: "4",
+    description: "Ski passes",
+    amount: 280,
+    currency: "USD",
+    category: "activities",
+    paidBy: "Adrian",
+    splitBetween: ["Claudia", "Adrian"],
+    trip: "Winter Getaway",
+    date: "2025-01-20",
+    createdAt: new Date("2024-12-04"),
+  },
+  {
+    id: "5",
+    description: "Car rental",
+    amount: 150,
+    currency: "EUR",
+    category: "transport",
+    paidBy: "Claudia",
+    splitBetween: ["Claudia", "Sohrab", "Adrian"],
+    trip: "Summer Trip",
+    date: "2025-06-16",
+    createdAt: new Date("2024-12-05"),
+  },
+  {
+    id: "6",
+    description: "Museum tickets",
+    amount: 60,
+    currency: "USD",
+    category: "activities",
+    paidBy: "Kevin",
+    splitBetween: ["Claudia", "Sohrab", "Adrian", "Kevin"],
+    trip: "Summer Trip",
+    date: "2025-06-17",
+    createdAt: new Date("2024-12-05"),
+  },
+];
+
+const DEMO_SAMPLE_TRIPS = ["Summer Trip", "Winter Getaway", "Beach Vacation"];
+
 export default function BudgetTrackerScreen() {
-  const [currentUser] = useState<string>("Claudia");
+  const [currentUser, setCurrentUser] = useState<string>("Claudia");
+  const [userEmail, setUserEmail] = useState<string>("");
+  const [isDemoAccount, setIsDemoAccount] = useState<boolean>(false);
   const [baseCurrency, setBaseCurrency] = useState<string>("USD");
   const [viewMode, setViewMode] = useState<ViewMode>("expenses");
   const [selectedTrip, setSelectedTrip] = useState<string>("All");
@@ -127,85 +209,181 @@ export default function BudgetTrackerScreen() {
   const [showTripFilter, setShowTripFilter] = useState(false);
   const [showCategoryFilter, setShowCategoryFilter] = useState(false);
   const [showCurrencyModal, setShowCurrencyModal] = useState(false);
+  const [showingPaymentInfo, setShowingPaymentInfo] = useState<string | null>(null);
+  const [paymentInfoMap, setPaymentInfoMap] = useState<{ [key: string]: { venmo: string | null; zelle: string | null } }>({});
+  const pulseAnims = useRef<{ [key: string]: Animated.Value }>({});
+  const [loading, setLoading] = useState(true);
 
-  // Sample data
+  const [trips, setTrips] = useState<string[]>([]);
+  const [expenses, setExpenses] = useState<Expense[]>([]);
   const teamMembers = ["Claudia", "Sohrab", "Adrian", "Kevin"];
-  const trips = ["Summer Trip", "Winter Getaway", "Beach Vacation"];
 
-  const [expenses, setExpenses] = useState<Expense[]>([
-    {
-      id: "1",
-      description: "Airbnb - 3 nights",
-      amount: 450,
-      currency: "USD",
-      category: "lodging",
-      paidBy: "Kevin",
-      splitBetween: ["Claudia", "Sohrab", "Adrian", "Kevin"],
-      trip: "Summer Trip",
-      date: "2025-06-15",
-      createdAt: new Date("2024-12-01"),
-    },
-    {
-      id: "2",
-      description: "Flight tickets",
-      amount: 320,
-      currency: "USD",
-      category: "transport",
-      paidBy: "Claudia",
-      splitBetween: ["Claudia", "Sohrab"],
-      trip: "Summer Trip",
-      date: "2025-06-15",
-      createdAt: new Date("2024-12-02"),
-    },
-    {
-      id: "3",
-      description: "Welcome dinner",
-      amount: 180,
-      currency: "USD",
-      category: "food",
-      paidBy: "Sohrab",
-      splitBetween: ["Claudia", "Sohrab", "Adrian", "Kevin"],
-      trip: "Summer Trip",
-      date: "2025-06-15",
-      createdAt: new Date("2024-12-03"),
-    },
-    {
-      id: "4",
-      description: "Ski passes",
-      amount: 280,
-      currency: "USD",
-      category: "activities",
-      paidBy: "Adrian",
-      splitBetween: ["Claudia", "Adrian"],
-      trip: "Winter Getaway",
-      date: "2025-01-20",
-      createdAt: new Date("2024-12-04"),
-    },
-    {
-      id: "5",
-      description: "Car rental",
-      amount: 150,
-      currency: "EUR",
-      category: "transport",
-      paidBy: "Claudia",
-      splitBetween: ["Claudia", "Sohrab", "Adrian"],
-      trip: "Summer Trip",
-      date: "2025-06-16",
-      createdAt: new Date("2024-12-05"),
-    },
-    {
-      id: "6",
-      description: "Museum tickets",
-      amount: 60,
-      currency: "USD",
-      category: "activities",
-      paidBy: "Kevin",
-      splitBetween: ["Claudia", "Sohrab", "Adrian", "Kevin"],
-      trip: "Summer Trip",
-      date: "2025-06-17",
-      createdAt: new Date("2024-12-05"),
-    },
-  ]);
+  // Check if user is demo account and load data
+  useEffect(() => {
+    const loadUserData = async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          setUserEmail(user.email || "");
+          const isDemo = user.email === "demo@tripplanner.com";
+          setIsDemoAccount(isDemo);
+
+          if (isDemo) {
+            // Use sample data for demo account
+            setExpenses(DEMO_SAMPLE_EXPENSES);
+            setTrips(DEMO_SAMPLE_TRIPS);
+          } else {
+            // Load from database for new accounts
+            await loadTripsFromDB();
+            await loadExpensesFromDB();
+          }
+        }
+      } catch (error) {
+        console.error("Error loading user data:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadUserData();
+  }, []);
+
+  const loadTripsFromDB = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data, error } = await supabase
+        .from('trips')
+        .select('name')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error("Error loading trips:", error);
+        return;
+      }
+
+      setTrips(data?.map(t => t.name) || []);
+    } catch (error) {
+      console.error("Error:", error);
+    }
+  };
+
+  const loadExpensesFromDB = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data, error } = await supabase
+        .from('expenses')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error("Error loading expenses:", error);
+        return;
+      }
+
+      // Convert database format to app format
+      const convertedExpenses: Expense[] = (data || []).map((exp: any) => ({
+        id: exp.id,
+        description: exp.description,
+        amount: parseFloat(exp.amount),
+        currency: exp.currency,
+        category: exp.category as ExpenseCategory,
+        paidBy: exp.paid_by,
+        splitBetween: exp.split_between || [],
+        trip: exp.trip_name,
+        date: exp.expense_date,
+        createdAt: new Date(exp.created_at),
+      }));
+
+      setExpenses(convertedExpenses);
+    } catch (error) {
+      console.error("Error:", error);
+    }
+  };
+
+  // Get payment info for a person (with hardcoded demo values)
+  const getPaymentInfo = async (personName: string): Promise<{ venmo: string | null; zelle: string | null }> => {
+    // Hardcoded demo values for demo account
+    if (isDemoAccount) {
+      const demoPaymentInfo: { [key: string]: { venmo: string | null; zelle: string | null } } = {
+        'Sohrab': { venmo: '@sohrab-venmo', zelle: 'sohrab@zelle.com' },
+        'Adrian': { venmo: '@adrian-venmo', zelle: 'adrian@zelle.com' },
+        'Claudia': { venmo: '@claudia-venmo', zelle: 'claudia@zelle.com' },
+        'Kevin': { venmo: '@kevin-venmo', zelle: 'kevin@zelle.com' },
+      };
+      return demoPaymentInfo[personName] || { venmo: null, zelle: null };
+    }
+
+    // For non-demo accounts, try to fetch from database
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('venmo, zelle, full_name, email')
+        .or(`full_name.ilike.%${personName}%,email.ilike.%${personName}%`)
+        .limit(1);
+
+      if (error || !data || data.length === 0) {
+        return { venmo: null, zelle: null };
+      }
+
+      return {
+        venmo: data[0]?.venmo || null,
+        zelle: data[0]?.zelle || null,
+      };
+    } catch (error) {
+      console.error('Error fetching payment info:', error);
+      return { venmo: null, zelle: null };
+    }
+  };
+
+  // Handle settle button press with animation
+  const handleSettlePress = async (settlement: Settlement) => {
+    const personName = settlement.to;
+    const key = `${settlement.from}-${settlement.to}`;
+
+    // Initialize animation if not exists
+    if (!pulseAnims.current[key]) {
+      pulseAnims.current[key] = new Animated.Value(1);
+    }
+
+    // If already showing, hide it
+    if (showingPaymentInfo === key) {
+      setShowingPaymentInfo(null);
+      pulseAnims.current[key].stopAnimation();
+      pulseAnims.current[key].setValue(1);
+      return;
+    }
+
+    // Show payment info
+    setShowingPaymentInfo(key);
+
+    // Start pulsing animation
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulseAnims.current[key], {
+          toValue: 1.1,
+          duration: 1000,
+          useNativeDriver: true,
+        }),
+        Animated.timing(pulseAnims.current[key], {
+          toValue: 1,
+          duration: 1000,
+          useNativeDriver: true,
+        }),
+      ])
+    ).start();
+
+    // Fetch payment info if not already cached
+    if (!paymentInfoMap[personName]) {
+      const info = await getPaymentInfo(personName);
+      setPaymentInfoMap(prev => ({ ...prev, [personName]: info }));
+    }
+  };
 
   // New expense form state
   const [newDescription, setNewDescription] = useState("");
@@ -366,7 +544,7 @@ export default function BudgetTrackerScreen() {
   }, [balances]);
 
   // Add expense
-  const addExpense = () => {
+  const addExpense = async () => {
     if (
       !newDescription.trim() ||
       !newAmount ||
@@ -397,7 +575,56 @@ export default function BudgetTrackerScreen() {
       createdAt: new Date(),
     };
 
-    setExpenses([...expenses, newExpense]);
+    // For demo account, just update local state
+    if (isDemoAccount) {
+      setExpenses([...expenses, newExpense]);
+    } else {
+      // For new accounts, save to database
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) {
+          Alert.alert("Error", "You must be logged in");
+          return;
+        }
+
+        // Find trip_id
+        const { data: tripData } = await supabase
+          .from('trips')
+          .select('id')
+          .eq('name', newTrip)
+          .eq('user_id', user.id)
+          .single();
+
+        const tripId = tripData?.id || null;
+
+        const { error } = await supabase
+          .from('expenses')
+          .insert({
+            user_id: user.id,
+            trip_id: tripId,
+            description: newExpense.description,
+            amount: newExpense.amount,
+            currency: newExpense.currency,
+            category: newExpense.category,
+            paid_by: newExpense.paidBy,
+            split_between: newExpense.splitBetween,
+            trip_name: newExpense.trip,
+            expense_date: newExpense.date,
+          });
+
+        if (error) {
+          Alert.alert("Error", error.message);
+          return;
+        }
+
+        // Reload expenses from DB
+        await loadExpensesFromDB();
+      } catch (error: any) {
+        Alert.alert("Error", error.message || "Failed to save expense");
+        return;
+      }
+    }
+
     resetForm();
     setShowAddModal(false);
   };
@@ -413,7 +640,7 @@ export default function BudgetTrackerScreen() {
     setNewDate("");
   };
 
-  const deleteExpense = (id: string) => {
+  const deleteExpense = async (id: string) => {
     Alert.alert(
       "Delete Expense",
       "Are you sure you want to delete this expense?",
@@ -422,7 +649,27 @@ export default function BudgetTrackerScreen() {
         {
           text: "Delete",
           style: "destructive",
-          onPress: () => setExpenses(expenses.filter((e) => e.id !== id)),
+          onPress: async () => {
+            if (isDemoAccount) {
+              setExpenses(expenses.filter((e) => e.id !== id));
+            } else {
+              try {
+                const { error } = await supabase
+                  .from('expenses')
+                  .delete()
+                  .eq('id', id);
+
+                if (error) {
+                  Alert.alert("Error", error.message);
+                  return;
+                }
+
+                await loadExpensesFromDB();
+              } catch (error: any) {
+                Alert.alert("Error", error.message || "Failed to delete expense");
+              }
+            }
+          },
         },
       ]
     );
@@ -645,36 +892,78 @@ export default function BudgetTrackerScreen() {
       {settlements.length > 0 && (
         <View style={styles.settlementsSection}>
           <Text style={styles.sectionTitle}>Suggested Settlements</Text>
-          {settlements.map((settlement, index) => (
-            <View key={index} style={styles.settlementRow}>
-              <View style={styles.settlementPeople}>
-                <View style={styles.smallAvatar}>
-                  <Text style={styles.smallAvatarText}>
-                    {settlement.from.charAt(0)}
-                  </Text>
+          {settlements.map((settlement, index) => {
+            const key = `${settlement.from}-${settlement.to}`;
+            const isShowing = showingPaymentInfo === key;
+            const paymentInfo = paymentInfoMap[settlement.to];
+            const animValue = pulseAnims.current[key] || new Animated.Value(1);
+            if (!pulseAnims.current[key]) {
+              pulseAnims.current[key] = animValue;
+            }
+
+            return (
+              <View key={index}>
+                <View style={styles.settlementRow}>
+                  <View style={styles.settlementPeople}>
+                    <View style={styles.smallAvatar}>
+                      <Text style={styles.smallAvatarText}>
+                        {settlement.from.charAt(0)}
+                      </Text>
+                    </View>
+                    <View style={styles.settlementArrow}>
+                      <Text style={styles.settlementArrowText}>→</Text>
+                    </View>
+                    <View style={styles.smallAvatar}>
+                      <Text style={styles.smallAvatarText}>
+                        {settlement.to.charAt(0)}
+                      </Text>
+                    </View>
+                  </View>
+                  <View style={styles.settlementInfo}>
+                    <Text style={styles.settlementNames}>
+                      {settlement.from} pays {settlement.to}
+                    </Text>
+                    <Text style={styles.settlementAmount}>
+                      {formatCurrency(settlement.amount)}
+                    </Text>
+                  </View>
+                  <Animated.View
+                    style={{
+                      transform: [{ scale: animValue }],
+                    }}
+                  >
+                    <TouchableOpacity
+                      style={[styles.settleButton, isShowing && styles.settleButtonActive]}
+                      onPress={() => handleSettlePress(settlement)}
+                      accessibilityRole="button"
+                      accessibilityLabel={`Settle payment with ${settlement.to}`}
+                    >
+                      <Text style={styles.settleButtonText}>Settle</Text>
+                    </TouchableOpacity>
+                  </Animated.View>
                 </View>
-                <View style={styles.settlementArrow}>
-                  <Text style={styles.settlementArrowText}>→</Text>
-                </View>
-                <View style={styles.smallAvatar}>
-                  <Text style={styles.smallAvatarText}>
-                    {settlement.to.charAt(0)}
-                  </Text>
-                </View>
+                {isShowing && paymentInfo && (
+                  <View style={styles.paymentInfoContainer}>
+                    {paymentInfo.venmo && (
+                      <View style={styles.paymentInfoRow}>
+                        <Text style={styles.paymentInfoLabel}>Venmo:</Text>
+                        <Text style={styles.paymentInfoValue}>{paymentInfo.venmo}</Text>
+                      </View>
+                    )}
+                    {paymentInfo.zelle && (
+                      <View style={styles.paymentInfoRow}>
+                        <Text style={styles.paymentInfoLabel}>Zelle:</Text>
+                        <Text style={styles.paymentInfoValue}>{paymentInfo.zelle}</Text>
+                      </View>
+                    )}
+                    {!paymentInfo.venmo && !paymentInfo.zelle && (
+                      <Text style={styles.paymentInfoNoData}>No payment info available</Text>
+                    )}
+                  </View>
+                )}
               </View>
-              <View style={styles.settlementInfo}>
-                <Text style={styles.settlementNames}>
-                  {settlement.from} pays {settlement.to}
-                </Text>
-                <Text style={styles.settlementAmount}>
-                  {formatCurrency(settlement.amount)}
-                </Text>
-              </View>
-              <TouchableOpacity style={styles.settleButton}>
-                <Text style={styles.settleButtonText}>Settle</Text>
-              </TouchableOpacity>
-            </View>
-          ))}
+            );
+          })}
         </View>
       )}
 
@@ -1293,6 +1582,7 @@ export default function BudgetTrackerScreen() {
           </View>
         </KeyboardAvoidingView>
       </Modal>
+
     </SafeAreaView>
   );
 }
@@ -1723,10 +2013,45 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     borderRadius: 8,
   },
+  settleButtonActive: {
+    backgroundColor: colors.primary,
+  },
   settleButtonText: {
     fontSize: 13,
     fontWeight: "600",
     color: colors.textInverse,
+  },
+  paymentInfoContainer: {
+    backgroundColor: colors.cardBg,
+    padding: 12,
+    marginTop: 8,
+    marginBottom: 8,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  paymentInfoRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 8,
+  },
+  paymentInfoLabel: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: colors.textSecondary,
+    marginRight: 8,
+    minWidth: 60,
+  },
+  paymentInfoValue: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: colors.text,
+    flex: 1,
+  },
+  paymentInfoNoData: {
+    fontSize: 13,
+    color: colors.textMuted,
+    fontStyle: "italic",
   },
   allSettledCard: {
     backgroundColor: colors.positive + "15",

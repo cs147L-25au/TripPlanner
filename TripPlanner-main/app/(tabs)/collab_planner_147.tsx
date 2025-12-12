@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import {
   View,
   Text,
@@ -16,6 +16,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import DatePicker from "../../components/DatePicker";
 import TaskTimer from "../../components/TaskTimer";
 import AnimatedButton from "../../components/AnimatedButton";
+import { supabase } from "../../lib/supabase";
 
 interface Responsibility {
   id: string;
@@ -87,8 +88,139 @@ const colors = {
   headerBg: "#FFF8F5", // Warm cream
 };
 
+// Sample data for demo account
+const DEMO_SAMPLE_RESPONSIBILITIES: Responsibility[] = [
+  {
+    id: "1",
+    task: "Book accommodation",
+    assignedTo: "Claudia",
+    trip: "Summer Trip",
+    tripDate: "06/15/2025",
+    completeBy: "12/20/2024",
+    category: "Accommodation",
+    completed: false,
+  },
+  {
+    id: "2",
+    task: "Plan itinerary",
+    assignedTo: "Sohrab",
+    trip: "Summer Trip",
+    tripDate: "06/15/2025",
+    completeBy: "12/18/2024",
+    category: "Excursions",
+    completed: false,
+  },
+  {
+    id: "3",
+    task: "Reserve restaurant",
+    assignedTo: "Adrian",
+    trip: "Summer Trip",
+    tripDate: "06/15/2025",
+    completeBy: "12/15/2024",
+    category: "Excursions",
+    completed: true,
+  },
+  {
+    id: "4",
+    task: "Buy tickets",
+    assignedTo: "Claudia",
+    trip: "Winter Getaway",
+    tripDate: "01/20/2025",
+    completeBy: "01/10/2025",
+    category: "Transportation",
+    completed: false,
+  },
+  {
+    id: "5",
+    task: "Research activities",
+    assignedTo: "Claudia",
+    trip: "Summer Trip",
+    tripDate: "06/15/2025",
+    completeBy: "12/22/2024",
+    category: "Excursions",
+    completed: false,
+  },
+];
+
+const DEMO_SAMPLE_PACKING_ITEMS: PackingItem[] = [
+  {
+    id: "1",
+    item: "Passport",
+    assignedTo: "Claudia",
+    trip: "Summer Trip",
+    bag: "Carry-on",
+    packed: true,
+  },
+  {
+    id: "2",
+    item: "Camera",
+    assignedTo: "Sohrab",
+    trip: "Summer Trip",
+    bag: "Carry-on",
+    packed: false,
+  },
+  {
+    id: "3",
+    item: "First aid kit",
+    assignedTo: "Adrian",
+    trip: "Summer Trip",
+    bag: "Checked",
+    packed: false,
+  },
+  {
+    id: "4",
+    item: "Ski jacket",
+    assignedTo: "Claudia",
+    trip: "Winter Getaway",
+    bag: "Checked",
+    packed: false,
+  },
+  {
+    id: "5",
+    item: "Travel adapter",
+    assignedTo: "Claudia",
+    trip: "Summer Trip",
+    bag: "Carry-on",
+    packed: false,
+  },
+];
+
+const DEMO_SAMPLE_PAYMENTS: Payment[] = [
+  {
+    id: "1",
+    description: "Venmo Kevin for Airbnb",
+    amount: "$150",
+    from: "Claudia",
+    to: "Kevin",
+    trip: "Summer Trip",
+    paid: false,
+  },
+  {
+    id: "2",
+    description: "Split dinner bill",
+    amount: "$45",
+    from: "Sohrab",
+    to: "Claudia",
+    trip: "Summer Trip",
+    paid: true,
+  },
+  {
+    id: "3",
+    description: "Flight reimbursement",
+    amount: "$320",
+    from: "Adrian",
+    to: "Claudia",
+    trip: "Winter Getaway",
+    paid: false,
+  },
+];
+
+const DEMO_SAMPLE_TRIPS = ["Summer Trip", "Winter Getaway", "Beach Vacation"];
+
 export default function CollabPlanner147() {
-  const [currentUser] = useState<string>("Claudia");
+  const [currentUser, setCurrentUser] = useState<string>("Claudia");
+  const [isDemoAccount, setIsDemoAccount] = useState<boolean>(false);
+  const [loading, setLoading] = useState(true);
 
   const [activeTab, setActiveTab] = useState<TabType>("responsibilities");
   const [selectedPerson, setSelectedPerson] = useState<string>("My Tasks");
@@ -101,6 +233,13 @@ export default function CollabPlanner147() {
   const [showBagFilter, setShowBagFilter] = useState(false);
   const [showStatusFilter, setShowStatusFilter] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
+  const [showTripModal, setShowTripModal] = useState(false);
+  const [showInviteModal, setShowInviteModal] = useState(false);
+  const [newTripName, setNewTripName] = useState("");
+  const [newTripStartDate, setNewTripStartDate] = useState("");
+  const [newTripEndDate, setNewTripEndDate] = useState("");
+  const [inviteEmail, setInviteEmail] = useState("");
+  const [inviteTrip, setInviteTrip] = useState("");
 
   const personFilterRef = useRef<View>(null);
   const tripFilterRef = useRef<View>(null);
@@ -113,131 +252,9 @@ export default function CollabPlanner147() {
     status: { x: 0, y: 0, width: 0 },
   });
 
-  const [responsibilities, setResponsibilities] = useState<Responsibility[]>([
-    {
-      id: "1",
-      task: "Book accommodation",
-      assignedTo: "Claudia",
-      trip: "Summer Trip",
-      tripDate: "06/15/2025",
-      completeBy: "12/20/2024",
-      category: "Accommodation",
-      completed: false,
-    },
-    {
-      id: "2",
-      task: "Plan itinerary",
-      assignedTo: "Sohrab",
-      trip: "Summer Trip",
-      tripDate: "06/15/2025",
-      completeBy: "12/18/2024",
-      category: "Excursions",
-      completed: false,
-    },
-    {
-      id: "3",
-      task: "Reserve restaurant",
-      assignedTo: "Adrian",
-      trip: "Summer Trip",
-      tripDate: "06/15/2025",
-      completeBy: "12/15/2024",
-      category: "Excursions",
-      completed: true,
-    },
-    {
-      id: "4",
-      task: "Buy tickets",
-      assignedTo: "Claudia",
-      trip: "Winter Getaway",
-      tripDate: "01/20/2025",
-      completeBy: "01/10/2025",
-      category: "Transportation",
-      completed: false,
-    },
-    {
-      id: "5",
-      task: "Research activities",
-      assignedTo: "Claudia",
-      trip: "Summer Trip",
-      tripDate: "06/15/2025",
-      completeBy: "12/22/2024",
-      category: "Excursions",
-      completed: false,
-    },
-  ]);
-
-  const [packingItems, setPackingItems] = useState<PackingItem[]>([
-    {
-      id: "1",
-      item: "Passport",
-      assignedTo: "Claudia",
-      trip: "Summer Trip",
-      bag: "Carry-on",
-      packed: true,
-    },
-    {
-      id: "2",
-      item: "Camera",
-      assignedTo: "Sohrab",
-      trip: "Summer Trip",
-      bag: "Carry-on",
-      packed: false,
-    },
-    {
-      id: "3",
-      item: "First aid kit",
-      assignedTo: "Adrian",
-      trip: "Summer Trip",
-      bag: "Checked",
-      packed: false,
-    },
-    {
-      id: "4",
-      item: "Ski jacket",
-      assignedTo: "Claudia",
-      trip: "Winter Getaway",
-      bag: "Checked",
-      packed: false,
-    },
-    {
-      id: "5",
-      item: "Travel adapter",
-      assignedTo: "Claudia",
-      trip: "Summer Trip",
-      bag: "Carry-on",
-      packed: false,
-    },
-  ]);
-
-  const [payments, setPayments] = useState<Payment[]>([
-    {
-      id: "1",
-      description: "Venmo Kevin for Airbnb",
-      amount: "$150",
-      from: "Claudia",
-      to: "Kevin",
-      trip: "Summer Trip",
-      paid: false,
-    },
-    {
-      id: "2",
-      description: "Split dinner bill",
-      amount: "$45",
-      from: "Sohrab",
-      to: "Claudia",
-      trip: "Summer Trip",
-      paid: true,
-    },
-    {
-      id: "3",
-      description: "Flight reimbursement",
-      amount: "$320",
-      from: "Adrian",
-      to: "Claudia",
-      trip: "Winter Getaway",
-      paid: false,
-    },
-  ]);
+  const [responsibilities, setResponsibilities] = useState<Responsibility[]>([]);
+  const [packingItems, setPackingItems] = useState<PackingItem[]>([]);
+  const [payments, setPayments] = useState<Payment[]>([]);
 
   const [newTask, setNewTask] = useState("");
   const [newTaskAssignee, setNewTaskAssignee] = useState("");
@@ -256,8 +273,159 @@ export default function CollabPlanner147() {
   const [newPaymentTrip, setNewPaymentTrip] = useState("");
 
   const teamMembers = ["Claudia", "Sohrab", "Adrian"];
-  const trips = ["Summer Trip", "Winter Getaway", "Beach Vacation"];
+  const [trips, setTrips] = useState<string[]>([]);
   const bags = ["Carry-on", "Checked", "Personal Item"];
+
+  // Check if user is demo account and load data
+  useEffect(() => {
+    const loadUserData = async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          const isDemo = user.email === "demo@tripplanner.com";
+          setIsDemoAccount(isDemo);
+
+          if (isDemo) {
+            // Use sample data for demo account
+            setResponsibilities(DEMO_SAMPLE_RESPONSIBILITIES);
+            setPackingItems(DEMO_SAMPLE_PACKING_ITEMS);
+            setPayments(DEMO_SAMPLE_PAYMENTS);
+            setTrips(DEMO_SAMPLE_TRIPS);
+          } else {
+            // Load from database for new accounts
+            await loadTripsFromDB();
+            await loadResponsibilitiesFromDB();
+            await loadPackingItemsFromDB();
+            await loadPaymentsFromDB();
+          }
+        }
+      } catch (error) {
+        console.error("Error loading user data:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadUserData();
+  }, []);
+
+  const loadTripsFromDB = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data, error } = await supabase
+        .from('trips')
+        .select('name')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error("Error loading trips:", error);
+        return;
+      }
+
+      setTrips(data?.map(t => t.name) || []);
+    } catch (error) {
+      console.error("Error:", error);
+    }
+  };
+
+  const loadResponsibilitiesFromDB = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data, error } = await supabase
+        .from('responsibilities')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error("Error loading responsibilities:", error);
+        return;
+      }
+
+      const converted: Responsibility[] = (data || []).map((r: any) => ({
+        id: r.id,
+        task: r.task,
+        assignedTo: r.assigned_to,
+        trip: r.trip_name,
+        tripDate: r.trip_date ? new Date(r.trip_date).toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' }).replace(/\//g, '/') : '',
+        completeBy: r.complete_by ? new Date(r.complete_by).toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' }).replace(/\//g, '/') : '',
+        category: r.category,
+        completed: r.completed || false,
+      }));
+
+      setResponsibilities(converted);
+    } catch (error) {
+      console.error("Error:", error);
+    }
+  };
+
+  const loadPackingItemsFromDB = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data, error } = await supabase
+        .from('packing_items')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error("Error loading packing items:", error);
+        return;
+      }
+
+      const converted: PackingItem[] = (data || []).map((p: any) => ({
+        id: p.id,
+        item: p.item,
+        assignedTo: p.assigned_to,
+        trip: p.trip_name,
+        bag: p.bag,
+        packed: p.packed || false,
+      }));
+
+      setPackingItems(converted);
+    } catch (error) {
+      console.error("Error:", error);
+    }
+  };
+
+  const loadPaymentsFromDB = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data, error } = await supabase
+        .from('payments')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error("Error loading payments:", error);
+        return;
+      }
+
+      const converted: Payment[] = (data || []).map((p: any) => ({
+        id: p.id,
+        description: p.description,
+        amount: p.amount,
+        from: p.from_person,
+        to: p.to_person,
+        trip: p.trip_name,
+        paid: p.paid || false,
+      }));
+
+      setPayments(converted);
+    } catch (error) {
+      console.error("Error:", error);
+    }
+  };
 
   const categories = [
     { name: "Transportation", color: colors.transportation },
@@ -568,6 +736,120 @@ export default function CollabPlanner147() {
     );
   };
 
+  const createTrip = async () => {
+    if (!newTripName.trim()) {
+      Alert.alert("Error", "Please enter a trip name");
+      return;
+    }
+
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        Alert.alert("Error", "You must be logged in to create a trip");
+        return;
+      }
+
+      const { data, error } = await supabase
+        .from('trips')
+        .insert({
+          user_id: user.id,
+          name: newTripName.trim(),
+          start_date: newTripStartDate || null,
+          end_date: newTripEndDate || null,
+        })
+        .select()
+        .single();
+
+      if (error) {
+        Alert.alert("Error", error.message);
+        return;
+      }
+
+      // Add to local trips list
+      setTrips([...trips, newTripName.trim()]);
+      setNewTripName("");
+      setNewTripStartDate("");
+      setNewTripEndDate("");
+      setShowTripModal(false);
+      Alert.alert("Success", "Trip created successfully!");
+    } catch (error: any) {
+      Alert.alert("Error", error.message || "Failed to create trip");
+    }
+  };
+
+  const invitePerson = async () => {
+    if (!inviteEmail.trim() || !inviteTrip) {
+      Alert.alert("Error", "Please enter an email and select a trip");
+      return;
+    }
+
+    // Basic email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(inviteEmail.trim())) {
+      Alert.alert("Error", "Please enter a valid email address");
+      return;
+    }
+
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        Alert.alert("Error", "You must be logged in to invite people");
+        return;
+      }
+
+      // First, find the trip_id
+      const { data: tripData, error: tripError } = await supabase
+        .from('trips')
+        .select('id')
+        .eq('name', inviteTrip)
+        .eq('user_id', user.id)
+        .single();
+
+      if (tripError || !tripData) {
+        Alert.alert("Error", "Trip not found");
+        return;
+      }
+
+      // Find the user by email
+      const { data: inviteeData, error: inviteeError } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('email', inviteEmail.trim())
+        .single();
+
+      if (inviteeError || !inviteeData) {
+        Alert.alert("Error", "User with this email not found. They need to sign up first.");
+        return;
+      }
+
+      // Create invitation
+      const { error: inviteError } = await supabase
+        .from('trip_members')
+        .insert({
+          trip_id: tripData.id,
+          user_id: inviteeData.id,
+          invited_by: user.id,
+          status: 'pending',
+        });
+
+      if (inviteError) {
+        if (inviteError.code === '23505') { // Unique constraint violation
+          Alert.alert("Error", "This person is already invited to this trip");
+        } else {
+          Alert.alert("Error", inviteError.message);
+        }
+        return;
+      }
+
+      setInviteEmail("");
+      setInviteTrip("");
+      setShowInviteModal(false);
+      Alert.alert("Success", `Invitation sent to ${inviteEmail.trim()}!`);
+    } catch (error: any) {
+      Alert.alert("Error", error.message || "Failed to send invitation");
+    }
+  };
+
   const filteredResponsibilities = getFilteredResponsibilities();
   const filteredPackingItems = getFilteredPackingItems();
   const filteredPayments = getFilteredPayments();
@@ -683,6 +965,24 @@ export default function CollabPlanner147() {
           <View style={styles.userBadge}>
             <Text style={styles.userBadgeText}>{currentUser}</Text>
           </View>
+        </View>
+        <View style={styles.headerActions}>
+          <TouchableOpacity
+            style={styles.headerActionButton}
+            onPress={() => setShowTripModal(true)}
+            accessibilityRole="button"
+            accessibilityLabel="Create new trip"
+          >
+            <Text style={styles.headerActionText}>+ New Trip</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.headerActionButton}
+            onPress={() => setShowInviteModal(true)}
+            accessibilityRole="button"
+            accessibilityLabel="Invite people"
+          >
+            <Text style={styles.headerActionText}>Invite</Text>
+          </TouchableOpacity>
         </View>
       </View>
 
@@ -1760,6 +2060,119 @@ export default function CollabPlanner147() {
           </View>
         </KeyboardAvoidingView>
       </Modal>
+
+      {/* Create Trip Modal */}
+      <Modal
+        visible={showTripModal}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setShowTripModal(false)}
+      >
+        <KeyboardAvoidingView
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
+          style={styles.modalOverlay}
+        >
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Create New Trip</Text>
+              <TouchableOpacity onPress={() => setShowTripModal(false)}>
+                <Text style={styles.modalClose}>×</Text>
+              </TouchableOpacity>
+            </View>
+            <ScrollView style={styles.modalScroll}>
+              <Text style={styles.modalLabel}>Trip Name *</Text>
+              <TextInput
+                style={styles.modalInput}
+                placeholder="Enter trip name..."
+                value={newTripName}
+                onChangeText={setNewTripName}
+                placeholderTextColor={colors.textLight}
+              />
+              <Text style={styles.modalLabel}>Start Date (Optional)</Text>
+              <DatePicker
+                date={newTripStartDate}
+                onDateChange={setNewTripStartDate}
+                placeholder="Select start date"
+              />
+              <Text style={styles.modalLabel}>End Date (Optional)</Text>
+              <DatePicker
+                date={newTripEndDate}
+                onDateChange={setNewTripEndDate}
+                placeholder="Select end date"
+              />
+              <TouchableOpacity
+                style={styles.modalAddButton}
+                onPress={createTrip}
+              >
+                <Text style={styles.modalAddButtonText}>Create Trip</Text>
+              </TouchableOpacity>
+            </ScrollView>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
+
+      {/* Invite Person Modal */}
+      <Modal
+        visible={showInviteModal}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setShowInviteModal(false)}
+      >
+        <KeyboardAvoidingView
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
+          style={styles.modalOverlay}
+        >
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Invite People</Text>
+              <TouchableOpacity onPress={() => setShowInviteModal(false)}>
+                <Text style={styles.modalClose}>×</Text>
+              </TouchableOpacity>
+            </View>
+            <ScrollView style={styles.modalScroll}>
+              <Text style={styles.modalLabel}>Email *</Text>
+              <TextInput
+                style={styles.modalInput}
+                placeholder="Enter email address..."
+                value={inviteEmail}
+                onChangeText={setInviteEmail}
+                keyboardType="email-address"
+                autoCapitalize="none"
+                placeholderTextColor={colors.textLight}
+              />
+              <Text style={styles.modalLabel}>Trip *</Text>
+              <View style={styles.pickerContainer}>
+                {trips.map((trip) => (
+                  <TouchableOpacity
+                    key={trip}
+                    style={[
+                      styles.pickerOption,
+                      inviteTrip === trip && styles.pickerOptionSelected,
+                    ]}
+                    onPress={() => setInviteTrip(trip)}
+                  >
+                    <Text
+                      style={[
+                        styles.pickerOptionText,
+                        inviteTrip === trip &&
+                        styles.pickerOptionTextSelected,
+                      ]}
+                    >
+                      {trip}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+              <TouchableOpacity
+                style={styles.modalAddButton}
+                onPress={invitePerson}
+              >
+                <Text style={styles.modalAddButtonText}>Send Invitation</Text>
+              </TouchableOpacity>
+            </ScrollView>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -1803,6 +2216,26 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: "600",
     color: colors.text,
+  },
+  headerActions: {
+    flexDirection: "row",
+    gap: 10,
+    paddingTop: 12,
+    paddingHorizontal: 20,
+    paddingBottom: 12,
+  },
+  headerActionButton: {
+    backgroundColor: colors.primary,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 8,
+    flex: 1,
+  },
+  headerActionText: {
+    color: colors.surface,
+    fontSize: 14,
+    fontWeight: "600",
+    textAlign: "center",
   },
   statsRow: {
     flexDirection: "row",

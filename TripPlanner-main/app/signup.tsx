@@ -18,6 +18,8 @@ export default function SignUpScreen() {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
+    const [venmo, setVenmo] = useState('');
+    const [zelle, setZelle] = useState('');
     const [loading, setLoading] = useState(false);
     const router = useRouter();
 
@@ -43,21 +45,39 @@ export default function SignUpScreen() {
             password,
         });
 
-        setLoading(false);
-
         if (error) {
+            setLoading(false);
             Alert.alert('Sign Up Error', error.message);
-        } else {
-            Alert.alert(
-                'Success',
-                'Account created! Please check your email to verify your account.',
-                [
-                    {
-                        text: 'OK',
-                        onPress: () => router.replace('/login'),
-                    },
-                ]
-            );
+            return;
+        }
+
+        // Create profile with Venmo and Zelle info
+        if (data.user) {
+            const { error: profileError } = await supabase
+                .from('profiles')
+                .insert({
+                    id: data.user.id,
+                    email: email,
+                    venmo: venmo.trim() || null,
+                    zelle: zelle.trim() || null,
+                });
+
+            setLoading(false);
+
+            if (profileError) {
+                Alert.alert('Profile Error', profileError.message);
+            } else {
+                Alert.alert(
+                    'Success',
+                    'Account created! Please check your email to verify your account.',
+                    [
+                        {
+                            text: 'OK',
+                            onPress: () => router.replace('/login'),
+                        },
+                    ]
+                );
+            }
         }
     };
 
@@ -107,6 +127,27 @@ export default function SignUpScreen() {
                                 secureTextEntry
                                 autoCapitalize="none"
                                 autoComplete="password"
+                            />
+
+                            <Text style={styles.label}>Venmo (Optional)</Text>
+                            <TextInput
+                                style={styles.input}
+                                placeholder="Your Venmo username"
+                                value={venmo}
+                                onChangeText={setVenmo}
+                                autoCapitalize="none"
+                                autoComplete="off"
+                            />
+
+                            <Text style={styles.label}>Zelle (Optional)</Text>
+                            <TextInput
+                                style={styles.input}
+                                placeholder="Your Zelle email or phone"
+                                value={zelle}
+                                onChangeText={setZelle}
+                                keyboardType="email-address"
+                                autoCapitalize="none"
+                                autoComplete="off"
                             />
 
                             <TouchableOpacity
