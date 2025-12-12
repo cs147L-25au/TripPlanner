@@ -1,11 +1,13 @@
 {
   "expo": {
-    "name": "Collaborative Planner 147",
-    "slug": "collab-planner-147",
+    "name": "Trip Planner",
+    "slug": "trip-planner",
     "version": "1.0.0",
     "orientation": "portrait",
     "userInterfaceStyle": "light",
+    "icon": "./assets/icon.png",
     "splash": {
+      "image": "./assets/splash.png",
       "resizeMode": "contain",
       "backgroundColor": "#b2d8d8"
     },
@@ -14,18 +16,18 @@
     ],
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.collabplanner147"
+      "bundleIdentifier": "com.tripplanner.app"
     },
     "android": {
       "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#b2d8d8"
       },
-      "package": "com.collabplanner147"
+      "package": "com.tripplanner.app"
     },
-    "scheme": "collab-planner-147",
+    "scheme": "trip-planner",
     "plugins": [
       "expo-router"
     ]
   }
 }
-

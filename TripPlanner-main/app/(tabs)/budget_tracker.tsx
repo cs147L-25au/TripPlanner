@@ -10,6 +10,7 @@ import {
   Platform,
   Modal,
   Dimensions,
+  KeyboardAvoidingView,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -816,6 +817,9 @@ export default function BudgetTrackerScreen() {
         <TouchableOpacity
           style={[styles.viewTab, viewMode === "expenses" && styles.viewTabActive]}
           onPress={() => setViewMode("expenses")}
+          accessibilityRole="tab"
+          accessibilityState={{ selected: viewMode === "expenses" }}
+          accessibilityLabel="Expenses view"
         >
           <Text
             style={[
@@ -829,6 +833,9 @@ export default function BudgetTrackerScreen() {
         <TouchableOpacity
           style={[styles.viewTab, viewMode === "summary" && styles.viewTabActive]}
           onPress={() => setViewMode("summary")}
+          accessibilityRole="tab"
+          accessibilityState={{ selected: viewMode === "summary" }}
+          accessibilityLabel="Balances view"
         >
           <Text
             style={[
@@ -842,6 +849,9 @@ export default function BudgetTrackerScreen() {
         <TouchableOpacity
           style={[styles.viewTab, viewMode === "chart" && styles.viewTabActive]}
           onPress={() => setViewMode("chart")}
+          accessibilityRole="tab"
+          accessibilityState={{ selected: viewMode === "chart" }}
+          accessibilityLabel="Charts view"
         >
           <Text
             style={[
@@ -910,6 +920,8 @@ export default function BudgetTrackerScreen() {
         style={styles.fab}
         onPress={() => setShowAddModal(true)}
         activeOpacity={0.8}
+        accessibilityRole="button"
+        accessibilityLabel="Add new expense"
       >
         <Text style={styles.fabText}>+</Text>
       </TouchableOpacity>
@@ -1087,7 +1099,10 @@ export default function BudgetTrackerScreen() {
         animationType="slide"
         onRequestClose={() => setShowAddModal(false)}
       >
-        <View style={styles.addModalOverlay}>
+        <KeyboardAvoidingView
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
+          style={styles.addModalOverlay}
+        >
           <View style={styles.addModalContent}>
             <View style={styles.addModalHeader}>
               <Text style={styles.addModalTitle}>Add Expense</Text>
@@ -1276,7 +1291,7 @@ export default function BudgetTrackerScreen() {
               </TouchableOpacity>
             </ScrollView>
           </View>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
     </SafeAreaView>
   );

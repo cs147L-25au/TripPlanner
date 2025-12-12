@@ -10,8 +10,12 @@ import {
   Platform,
   Modal,
   Dimensions,
+  KeyboardAvoidingView,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import DatePicker from "../../components/DatePicker";
+import TaskTimer from "../../components/TaskTimer";
+import AnimatedButton from "../../components/AnimatedButton";
 
 interface Responsibility {
   id: string;
@@ -364,13 +368,23 @@ export default function CollabPlanner147() {
       newTaskCompleteBy.trim() &&
       newTaskCategory.trim()
     ) {
+      // Convert date from YYYY-MM-DD to MM/DD/YYYY format
+      const formatDateForDisplay = (dateStr: string) => {
+        if (!dateStr || dateStr === "TBD") return "TBD";
+        const date = new Date(dateStr);
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        const year = date.getFullYear();
+        return `${month}/${day}/${year}`;
+      };
+
       const newResp: Responsibility = {
         id: Date.now().toString(),
         task: newTask.trim(),
         assignedTo: newTaskAssignee.trim(),
         trip: newTaskTrip.trim(),
-        tripDate: newTaskTripDate.trim() || "TBD",
-        completeBy: newTaskCompleteBy.trim(),
+        tripDate: formatDateForDisplay(newTaskTripDate),
+        completeBy: formatDateForDisplay(newTaskCompleteBy),
         category: newTaskCategory.trim(),
         completed: false,
       };
@@ -672,55 +686,6 @@ export default function CollabPlanner147() {
         </View>
       </View>
 
-      {/* Tabs */}
-      <View style={styles.tabContainer}>
-        <TouchableOpacity
-          style={[
-            styles.tab,
-            activeTab === "responsibilities" && styles.tabActive,
-          ]}
-          onPress={() => {
-            setActiveTab("responsibilities");
-            setSelectedBag("All");
-            setSelectedStatus("All");
-          }}
-        >
-          <Text
-            style={[
-              styles.tabText,
-              activeTab === "responsibilities" && styles.tabTextActive,
-            ]}
-          >
-            Tasks
-          </Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.tab, activeTab === "packing" && styles.tabActive]}
-          onPress={() => setActiveTab("packing")}
-        >
-          <Text
-            style={[
-              styles.tabText,
-              activeTab === "packing" && styles.tabTextActive,
-            ]}
-          >
-            Packing
-          </Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.tab, activeTab === "payments" && styles.tabActive]}
-          onPress={() => setActiveTab("payments")}
-        >
-          <Text
-            style={[
-              styles.tabText,
-              activeTab === "payments" && styles.tabTextActive,
-            ]}
-          >
-            Payments
-          </Text>
-        </TouchableOpacity>
-      </View>
 
       {/* Filters */}
       {(activeTab === "responsibilities" || activeTab === "packing") && (
@@ -731,8 +696,8 @@ export default function CollabPlanner147() {
                 style={[
                   styles.filterButton,
                   selectedPerson !== "All" &&
-                    selectedPerson !== "My Tasks" &&
-                    styles.filterButtonActive,
+                  selectedPerson !== "My Tasks" &&
+                  styles.filterButtonActive,
                 ]}
                 onPress={() => handleFilterPress("person")}
               >
@@ -740,8 +705,8 @@ export default function CollabPlanner147() {
                   style={[
                     styles.filterButtonText,
                     selectedPerson !== "All" &&
-                      selectedPerson !== "My Tasks" &&
-                      styles.filterButtonTextActive,
+                    selectedPerson !== "My Tasks" &&
+                    styles.filterButtonTextActive,
                   ]}
                 >
                   Member
@@ -947,17 +912,20 @@ export default function CollabPlanner147() {
                                 },
                                 resp.completed && styles.itemCardCompleted,
                                 overdue &&
-                                  !resp.completed &&
-                                  styles.itemCardOverdue,
+                                !resp.completed &&
+                                styles.itemCardOverdue,
                                 dueSoon &&
-                                  !resp.completed &&
-                                  !overdue &&
-                                  styles.itemCardDueSoon,
+                                !resp.completed &&
+                                !overdue &&
+                                styles.itemCardDueSoon,
                               ]}
                             >
                               <TouchableOpacity
                                 style={styles.itemContent}
                                 onPress={() => toggleResponsibility(resp.id)}
+                                accessibilityRole="checkbox"
+                                accessibilityState={{ checked: resp.completed }}
+                                accessibilityLabel={`${resp.task}, assigned to ${resp.assignedTo}, due ${resp.completeBy}`}
                               >
                                 <View
                                   style={[
@@ -975,7 +943,7 @@ export default function CollabPlanner147() {
                                       style={[
                                         styles.itemText,
                                         resp.completed &&
-                                          styles.itemTextCompleted,
+                                        styles.itemTextCompleted,
                                       ]}
                                       numberOfLines={2}
                                     >
@@ -997,14 +965,14 @@ export default function CollabPlanner147() {
                                       style={[
                                         styles.badge,
                                         resp.assignedTo === currentUser &&
-                                          styles.badgeMine,
+                                        styles.badgeMine,
                                       ]}
                                     >
                                       <Text
                                         style={[
                                           styles.badgeText,
                                           resp.assignedTo === currentUser &&
-                                            styles.badgeTextMine,
+                                          styles.badgeTextMine,
                                         ]}
                                       >
                                         {resp.assignedTo === currentUser
@@ -1023,7 +991,10 @@ export default function CollabPlanner147() {
                                       <Text style={styles.dateLabel}>
                                         Trip:
                                       </Text>
-                                      <Text style={styles.dateValue}>
+                                      <Text
+                                        style={styles.dateValue}
+                                        accessibilityLabel={`Trip date: ${resp.tripDate}`}
+                                      >
                                         {resp.tripDate}
                                       </Text>
                                     </View>
@@ -1033,38 +1004,45 @@ export default function CollabPlanner147() {
                                         style={[
                                           styles.dateValue,
                                           overdue &&
-                                            !resp.completed &&
-                                            styles.dateValueOverdue,
+                                          !resp.completed &&
+                                          styles.dateValueOverdue,
                                           dueSoon &&
-                                            !resp.completed &&
-                                            !overdue &&
-                                            styles.dateValueDueSoon,
+                                          !resp.completed &&
+                                          !overdue &&
+                                          styles.dateValueDueSoon,
                                         ]}
+                                        accessibilityLabel={`Due date: ${resp.completeBy}`}
                                       >
                                         {resp.completeBy}
                                       </Text>
                                     </View>
+                                    {!resp.completed && (
+                                      <View style={styles.timerContainer}>
+                                        <TaskTimer
+                                          completeBy={resp.completeBy}
+                                          completed={resp.completed}
+                                        />
+                                      </View>
+                                    )}
                                   </View>
                                 </View>
                               </TouchableOpacity>
                               <View style={styles.itemActions}>
                                 {!resp.completed && (
                                   <TouchableOpacity
-                                    style={styles.nudgeButton}
+                                    style={styles.remindButton}
                                     onPress={() => sendNudge(resp)}
+                                    accessibilityRole="button"
+                                    accessibilityLabel={`Send reminder for ${resp.task}`}
                                   >
-                                    <View style={styles.bellIcon}>
-                                      <View style={styles.bellBody} />
-                                      <View style={styles.bellClapper} />
-                                      <View style={styles.bellWave1} />
-                                      <View style={styles.bellWave2} />
-                                      <View style={styles.bellWave3} />
-                                    </View>
+                                    <Text style={styles.remindButtonText}>🔔 Remind</Text>
                                   </TouchableOpacity>
                                 )}
                                 <TouchableOpacity
                                   style={styles.deleteButton}
                                   onPress={() => deleteResponsibility(resp.id)}
+                                  accessibilityRole="button"
+                                  accessibilityLabel={`Delete task: ${resp.task}`}
                                 >
                                   <Text style={styles.deleteIcon}>×</Text>
                                 </TouchableOpacity>
@@ -1170,10 +1148,10 @@ export default function CollabPlanner147() {
                                           style={[
                                             styles.packingItemCard,
                                             item.packed &&
-                                              styles.itemCardCompleted,
+                                            styles.itemCardCompleted,
                                             itemIndex === 0 && { marginTop: 4 },
                                             itemIndex ===
-                                              bagItems.length - 1 && {
+                                            bagItems.length - 1 && {
                                               marginBottom: 0,
                                             },
                                           ]}
@@ -1188,7 +1166,7 @@ export default function CollabPlanner147() {
                                               style={[
                                                 styles.checkbox,
                                                 item.packed &&
-                                                  styles.checkboxChecked,
+                                                styles.checkboxChecked,
                                               ]}
                                             >
                                               {item.packed && (
@@ -1204,7 +1182,7 @@ export default function CollabPlanner147() {
                                                 style={[
                                                   styles.itemText,
                                                   item.packed &&
-                                                    styles.itemTextCompleted,
+                                                  styles.itemTextCompleted,
                                                 ]}
                                                 numberOfLines={2}
                                               >
@@ -1356,6 +1334,9 @@ export default function CollabPlanner147() {
         <TouchableOpacity
           style={styles.footerTab}
           onPress={() => setActiveTab("responsibilities")}
+          accessibilityRole="tab"
+          accessibilityState={{ selected: activeTab === "responsibilities" }}
+          accessibilityLabel="Tasks tab"
         >
           <View
             style={[
@@ -1377,6 +1358,9 @@ export default function CollabPlanner147() {
         <TouchableOpacity
           style={styles.footerTab}
           onPress={() => setActiveTab("packing")}
+          accessibilityRole="tab"
+          accessibilityState={{ selected: activeTab === "packing" }}
+          accessibilityLabel="Packing tab"
         >
           <View
             style={[
@@ -1398,6 +1382,9 @@ export default function CollabPlanner147() {
         <TouchableOpacity
           style={styles.footerTab}
           onPress={() => setActiveTab("payments")}
+          accessibilityRole="tab"
+          accessibilityState={{ selected: activeTab === "payments" }}
+          accessibilityLabel="Payments tab"
         >
           <View
             style={[
@@ -1423,6 +1410,8 @@ export default function CollabPlanner147() {
         style={styles.fab}
         onPress={() => setShowAddModal(true)}
         activeOpacity={0.8}
+        accessibilityRole="button"
+        accessibilityLabel={`Add new ${activeTab === "responsibilities" ? "task" : activeTab === "packing" ? "packing item" : "payment"}`}
       >
         <Text style={styles.fabText}>+</Text>
       </TouchableOpacity>
@@ -1468,15 +1457,18 @@ export default function CollabPlanner147() {
         animationType="slide"
         onRequestClose={() => setShowAddModal(false)}
       >
-        <View style={styles.modalOverlay}>
+        <KeyboardAvoidingView
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
+          style={styles.modalOverlay}
+        >
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>
                 {activeTab === "responsibilities"
                   ? "Add New Task"
                   : activeTab === "packing"
-                  ? "Add Packing Item"
-                  : "Add Payment"}
+                    ? "Add Packing Item"
+                    : "Add Payment"}
               </Text>
               <TouchableOpacity onPress={() => setShowAddModal(false)}>
                 <Text style={styles.modalClose}>×</Text>
@@ -1501,7 +1493,7 @@ export default function CollabPlanner147() {
                         style={[
                           styles.pickerOption,
                           newTaskAssignee === member &&
-                            styles.pickerOptionSelected,
+                          styles.pickerOptionSelected,
                         ]}
                         onPress={() => setNewTaskAssignee(member)}
                       >
@@ -1509,7 +1501,7 @@ export default function CollabPlanner147() {
                           style={[
                             styles.pickerOptionText,
                             newTaskAssignee === member &&
-                              styles.pickerOptionTextSelected,
+                            styles.pickerOptionTextSelected,
                           ]}
                         >
                           {member}
@@ -1532,7 +1524,7 @@ export default function CollabPlanner147() {
                           style={[
                             styles.pickerOptionText,
                             newTaskTrip === trip &&
-                              styles.pickerOptionTextSelected,
+                            styles.pickerOptionTextSelected,
                           ]}
                         >
                           {trip}
@@ -1575,27 +1567,18 @@ export default function CollabPlanner147() {
                       </TouchableOpacity>
                     ))}
                   </View>
-                  <Text style={styles.modalLabel}>Trip Date (Optional)</Text>
-                  <TextInput
-                    style={styles.modalInput}
-                    placeholder="MM/DD/YYYY (e.g., 06/15/2025)"
+                  <DatePicker
+                    label="Trip Date (Optional)"
                     value={newTaskTripDate}
-                    onChangeText={setNewTaskTripDate}
-                    placeholderTextColor={colors.textLight}
-                    keyboardType="default"
+                    onChange={(date) => setNewTaskTripDate(date)}
+                    placeholder="Select trip date"
                   />
-                  <Text style={styles.modalLabel}>Complete By *</Text>
-                  <TextInput
-                    style={styles.modalInput}
-                    placeholder="MM/DD/YYYY (e.g., 12/25/2024)"
+                  <DatePicker
+                    label="Complete By *"
                     value={newTaskCompleteBy}
-                    onChangeText={setNewTaskCompleteBy}
-                    placeholderTextColor={colors.textLight}
-                    keyboardType="default"
+                    onChange={(date) => setNewTaskCompleteBy(date)}
+                    placeholder="Select completion date"
                   />
-                  <Text style={styles.modalHint}>
-                    Enter date in MM/DD/YYYY format
-                  </Text>
                   <TouchableOpacity
                     style={styles.modalAddButton}
                     onPress={addResponsibility}
@@ -1621,7 +1604,7 @@ export default function CollabPlanner147() {
                         style={[
                           styles.pickerOption,
                           newItemAssignee === member &&
-                            styles.pickerOptionSelected,
+                          styles.pickerOptionSelected,
                         ]}
                         onPress={() => setNewItemAssignee(member)}
                       >
@@ -1629,7 +1612,7 @@ export default function CollabPlanner147() {
                           style={[
                             styles.pickerOptionText,
                             newItemAssignee === member &&
-                              styles.pickerOptionTextSelected,
+                            styles.pickerOptionTextSelected,
                           ]}
                         >
                           {member}
@@ -1652,7 +1635,7 @@ export default function CollabPlanner147() {
                           style={[
                             styles.pickerOptionText,
                             newItemTrip === trip &&
-                              styles.pickerOptionTextSelected,
+                            styles.pickerOptionTextSelected,
                           ]}
                         >
                           {trip}
@@ -1675,7 +1658,7 @@ export default function CollabPlanner147() {
                           style={[
                             styles.pickerOptionText,
                             newItemBag === bag &&
-                              styles.pickerOptionTextSelected,
+                            styles.pickerOptionTextSelected,
                           ]}
                         >
                           {bag}
@@ -1717,7 +1700,7 @@ export default function CollabPlanner147() {
                         style={[
                           styles.pickerOption,
                           newPaymentFrom === member &&
-                            styles.pickerOptionSelected,
+                          styles.pickerOptionSelected,
                         ]}
                         onPress={() => setNewPaymentFrom(member)}
                       >
@@ -1725,7 +1708,7 @@ export default function CollabPlanner147() {
                           style={[
                             styles.pickerOptionText,
                             newPaymentFrom === member &&
-                              styles.pickerOptionTextSelected,
+                            styles.pickerOptionTextSelected,
                           ]}
                         >
                           {member}
@@ -1749,7 +1732,7 @@ export default function CollabPlanner147() {
                         style={[
                           styles.pickerOption,
                           newPaymentTrip === trip &&
-                            styles.pickerOptionSelected,
+                          styles.pickerOptionSelected,
                         ]}
                         onPress={() => setNewPaymentTrip(trip)}
                       >
@@ -1757,7 +1740,7 @@ export default function CollabPlanner147() {
                           style={[
                             styles.pickerOptionText,
                             newPaymentTrip === trip &&
-                              styles.pickerOptionTextSelected,
+                            styles.pickerOptionTextSelected,
                           ]}
                         >
                           {trip}
@@ -1775,7 +1758,7 @@ export default function CollabPlanner147() {
               )}
             </ScrollView>
           </View>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
     </SafeAreaView>
   );
@@ -1849,34 +1832,6 @@ const styles = StyleSheet.create({
     backgroundColor: colors.border,
     marginHorizontal: 8,
     flexShrink: 0,
-  },
-  tabContainer: {
-    flexDirection: "row",
-    backgroundColor: colors.surface,
-    paddingHorizontal: 20,
-    paddingTop: 6,
-    paddingBottom: 2,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.borderLight,
-  },
-  tab: {
-    paddingVertical: 10,
-    paddingHorizontal: 14,
-    marginRight: 6,
-    borderRadius: 8,
-    borderBottomWidth: 0,
-    backgroundColor: "transparent",
-  },
-  tabActive: {
-    backgroundColor: colors.primary + "12",
-  },
-  tabText: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: colors.textLight,
-  },
-  tabTextActive: {
-    color: colors.primary,
   },
   filterBar: {
     backgroundColor: colors.background,
@@ -2187,6 +2142,10 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.borderLight,
   },
+  timerContainer: {
+    marginTop: 8,
+    alignItems: 'flex-start',
+  },
   dateRow: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -2263,62 +2222,18 @@ const styles = StyleSheet.create({
     marginLeft: 6,
     gap: 4,
   },
-  nudgeButton: {
-    padding: 4,
+  remindButton: {
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 6,
+    backgroundColor: colors.accent + "20",
+    borderWidth: 1,
+    borderColor: colors.accent,
   },
-  bellIcon: {
-    width: 20,
-    height: 20,
-    position: "relative",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  bellBody: {
-    width: 12,
-    height: 10,
-    borderWidth: 1.5,
-    borderColor: colors.textLight,
-    borderRadius: 2,
-    borderTopLeftRadius: 6,
-    borderTopRightRadius: 6,
-    position: "absolute",
-    top: 2,
-  },
-  bellClapper: {
-    width: 2,
-    height: 3,
-    backgroundColor: colors.textLight,
-    borderRadius: 1,
-    position: "absolute",
-    bottom: 0,
-    left: 8,
-  },
-  bellWave1: {
-    position: "absolute",
-    right: -3,
-    top: 3,
-    width: 2,
-    height: 1,
-    backgroundColor: colors.textLight,
-    borderRadius: 0.5,
-  },
-  bellWave2: {
-    position: "absolute",
-    right: -4,
-    top: 5,
-    width: 3,
-    height: 1,
-    backgroundColor: colors.textLight,
-    borderRadius: 0.5,
-  },
-  bellWave3: {
-    position: "absolute",
-    right: -3,
-    top: 7,
-    width: 2,
-    height: 1,
-    backgroundColor: colors.textLight,
-    borderRadius: 0.5,
+  remindButtonText: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: colors.accent,
   },
   deleteButton: {
     padding: 4,
