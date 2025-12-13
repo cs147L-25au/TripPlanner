@@ -127,7 +127,9 @@ EXPO_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
 - ✅ **Multiple Screens**: Login, Signup, Home, Planner, Budget Tracker
 - ✅ **Complex Navigation**: Stack Navigator + Tab Navigator + Auth routing
 - ✅ **Database**: Supabase with full CRUD operations
-- ✅ **External API**: (Not required for this project)
+- ✅ **External API**: 
+  - Exchange Rates API (exchangerate-api.com) for real-time currency conversion
+  - Timezone API (worldtimeapi.org) for timezone information
 - ✅ **Third-party Libraries**: 
   - `react-native-calendars` (calendar picker)
   - `@supabase/supabase-js` (database)

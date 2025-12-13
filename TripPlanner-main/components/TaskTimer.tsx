@@ -36,7 +36,6 @@ export default function TaskTimer({ completeBy, completed }: TaskTimerProps) {
                 const daysOverdue = Math.floor(Math.abs(diff) / (1000 * 60 * 60 * 24));
                 setTimeRemaining(`${daysOverdue}d overdue`);
 
-                // Start pulsing animation for overdue items
                 Animated.loop(
                     Animated.sequence([
                         Animated.timing(pulseAnim, {
@@ -69,7 +68,7 @@ export default function TaskTimer({ completeBy, completed }: TaskTimerProps) {
         };
 
         calculateTimeRemaining();
-        const interval = setInterval(calculateTimeRemaining, 60000); // Update every minute
+        const interval = setInterval(calculateTimeRemaining, 60000);
 
         return () => {
             clearInterval(interval);

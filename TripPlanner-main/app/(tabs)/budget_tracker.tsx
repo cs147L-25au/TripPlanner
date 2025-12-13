@@ -15,6 +15,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { supabase } from "../../lib/supabase";
+import { fetchExchangeRates } from "../../lib/exchangeRatesApi";
 
 interface Expense {
   id: string;
@@ -31,7 +32,7 @@ interface Expense {
 
 interface Balance {
   person: string;
-  balance: number; // positive = owed money, negative = owes money
+  balance: number;
 }
 
 interface Settlement {
@@ -45,51 +46,37 @@ type ViewMode = "expenses" | "summary" | "chart";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
-// Refined warm color palette with deeper accents
 const colors = {
-  // Primary palette - warm sunset tones
-  primary: "#E85D4C", // Warm red-coral
-  secondary: "#F4A259", // Golden amber
-  accent: "#4ECDC4", // Tropical teal
-  tertiary: "#95C623", // Fresh lime
-
-  // Background hierarchy
-  background: "#FFFAF6", // Warm cream paper
+  primary: "#E85D4C",
+  secondary: "#F4A259",
+  accent: "#4ECDC4",
+  tertiary: "#95C623",
+  background: "#FFFAF6",
   surface: "#FFFFFF",
   cardBg: "#FFF9F5",
   elevated: "#FFFFFF",
-
-  // Text hierarchy
-  text: "#2D2A26", // Warm charcoal
+  text: "#2D2A26",
   textSecondary: "#6B6560",
   textMuted: "#A39E98",
   textInverse: "#FFFFFF",
-
-  // Borders
   border: "#E8E0D8",
   borderLight: "#F2EDE8",
   borderFocus: "#E85D4C",
-
-  // Category colors - vibrant and distinct
-  lodging: "#E85D4C", // Warm red
-  transport: "#4ECDC4", // Teal
-  food: "#F4A259", // Golden amber
-  activities: "#9B5DE5", // Purple
-  other: "#6B6560", // Neutral gray
-
-  // Status
-  positive: "#4ECDC4", // Teal - you're owed
-  negative: "#E85D4C", // Red - you owe
+  lodging: "#E85D4C",
+  transport: "#4ECDC4",
+  food: "#F4A259",
+  activities: "#9B5DE5",
+  other: "#6B6560",
+  positive: "#4ECDC4",
+  negative: "#E85D4C",
   neutral: "#6B6560",
   success: "#4ECDC4",
   warning: "#F4A259",
 
-  // Chart colors
   chartBg: "#FFF9F5",
   chartGrid: "#E8E0D8",
 };
 
-// Currency data
 const currencies = [
   { code: "USD", symbol: "$", name: "US Dollar" },
   { code: "EUR", symbol: "€", name: "Euro" },
@@ -99,14 +86,13 @@ const currencies = [
   { code: "AUD", symbol: "A$", name: "Australian Dollar" },
 ];
 
-// Mock exchange rates (in real app, fetch from API)
-const exchangeRates: { [key: string]: number } = {
+let exchangeRates: { [key: string]: number } = {
   USD: 1,
-  EUR: 1.08,
-  GBP: 1.27,
-  JPY: 0.0067,
-  CAD: 0.74,
-  AUD: 0.65,
+  EUR: 0.92,
+  GBP: 0.79,
+  JPY: 149.5,
+  CAD: 1.35,
+  AUD: 1.52,
 };
 
 const categoryConfig: {
@@ -119,80 +105,79 @@ const categoryConfig: {
   other: { label: "Other", color: colors.other, icon: "📦"   },
 };
 
-// Sample data for demo account
 const DEMO_SAMPLE_EXPENSES: Expense[] = [
-  {
-    id: "1",
-    description: "Airbnb - 3 nights",
-    amount: 450,
-    currency: "USD",
-    category: "lodging",
-    paidBy: "Kevin",
-    splitBetween: ["Claudia", "Sohrab", "Adrian", "Kevin"],
-    trip: "Summer Trip",
-    date: "2025-06-15",
-    createdAt: new Date("2024-12-01"),
-  },
-  {
-    id: "2",
-    description: "Flight tickets",
-    amount: 320,
-    currency: "USD",
-    category: "transport",
-    paidBy: "Claudia",
-    splitBetween: ["Claudia", "Sohrab"],
-    trip: "Summer Trip",
-    date: "2025-06-15",
-    createdAt: new Date("2024-12-02"),
-  },
-  {
-    id: "3",
-    description: "Welcome dinner",
-    amount: 180,
-    currency: "USD",
-    category: "food",
-    paidBy: "Sohrab",
-    splitBetween: ["Claudia", "Sohrab", "Adrian", "Kevin"],
-    trip: "Summer Trip",
-    date: "2025-06-15",
-    createdAt: new Date("2024-12-03"),
-  },
-  {
-    id: "4",
-    description: "Ski passes",
-    amount: 280,
-    currency: "USD",
-    category: "activities",
-    paidBy: "Adrian",
-    splitBetween: ["Claudia", "Adrian"],
-    trip: "Winter Getaway",
-    date: "2025-01-20",
-    createdAt: new Date("2024-12-04"),
-  },
-  {
-    id: "5",
-    description: "Car rental",
-    amount: 150,
-    currency: "EUR",
-    category: "transport",
-    paidBy: "Claudia",
-    splitBetween: ["Claudia", "Sohrab", "Adrian"],
-    trip: "Summer Trip",
-    date: "2025-06-16",
-    createdAt: new Date("2024-12-05"),
-  },
-  {
-    id: "6",
-    description: "Museum tickets",
-    amount: 60,
-    currency: "USD",
-    category: "activities",
-    paidBy: "Kevin",
-    splitBetween: ["Claudia", "Sohrab", "Adrian", "Kevin"],
-    trip: "Summer Trip",
-    date: "2025-06-17",
-    createdAt: new Date("2024-12-05"),
-  },
+    {
+      id: "1",
+      description: "Airbnb - 3 nights",
+      amount: 450,
+      currency: "USD",
+      category: "lodging",
+      paidBy: "Kevin",
+      splitBetween: ["Claudia", "Sohrab", "Adrian", "Kevin"],
+      trip: "Summer Trip",
+      date: "2025-06-15",
+      createdAt: new Date("2024-12-01"),
+    },
+    {
+      id: "2",
+      description: "Flight tickets",
+      amount: 320,
+      currency: "USD",
+      category: "transport",
+      paidBy: "Claudia",
+      splitBetween: ["Claudia", "Sohrab"],
+      trip: "Summer Trip",
+      date: "2025-06-15",
+      createdAt: new Date("2024-12-02"),
+    },
+    {
+      id: "3",
+      description: "Welcome dinner",
+      amount: 180,
+      currency: "USD",
+      category: "food",
+      paidBy: "Sohrab",
+      splitBetween: ["Claudia", "Sohrab", "Adrian", "Kevin"],
+      trip: "Summer Trip",
+      date: "2025-06-15",
+      createdAt: new Date("2024-12-03"),
+    },
+    {
+      id: "4",
+      description: "Ski passes",
+      amount: 280,
+      currency: "USD",
+      category: "activities",
+      paidBy: "Adrian",
+      splitBetween: ["Claudia", "Adrian"],
+      trip: "Winter Getaway",
+      date: "2025-01-20",
+      createdAt: new Date("2024-12-04"),
+    },
+    {
+      id: "5",
+      description: "Car rental",
+      amount: 150,
+      currency: "EUR",
+      category: "transport",
+      paidBy: "Claudia",
+      splitBetween: ["Claudia", "Sohrab", "Adrian"],
+      trip: "Summer Trip",
+      date: "2025-06-16",
+      createdAt: new Date("2024-12-05"),
+    },
+    {
+      id: "6",
+      description: "Museum tickets",
+      amount: 60,
+      currency: "USD",
+      category: "activities",
+      paidBy: "Kevin",
+      splitBetween: ["Claudia", "Sohrab", "Adrian", "Kevin"],
+      trip: "Summer Trip",
+      date: "2025-06-17",
+      createdAt: new Date("2024-12-05"),
+    },
 ];
 
 const DEMO_SAMPLE_TRIPS = ["Summer Trip", "Winter Getaway", "Beach Vacation"];
@@ -216,12 +201,16 @@ export default function BudgetTrackerScreen() {
 
   const [trips, setTrips] = useState<string[]>([]);
   const [expenses, setExpenses] = useState<Expense[]>([]);
+  const [exchangeRatesState, setExchangeRatesState] = useState<{ [key: string]: number }>(exchangeRates);
   const teamMembers = ["Claudia", "Sohrab", "Adrian", "Kevin"];
 
-  // Check if user is demo account and load data
   useEffect(() => {
     const loadUserData = async () => {
       try {
+        const rates = await fetchExchangeRates();
+        exchangeRates = rates;
+        setExchangeRatesState(rates);
+
         const { data: { user } } = await supabase.auth.getUser();
         if (user) {
           setUserEmail(user.email || "");
@@ -229,11 +218,9 @@ export default function BudgetTrackerScreen() {
           setIsDemoAccount(isDemo);
 
           if (isDemo) {
-            // Use sample data for demo account
             setExpenses(DEMO_SAMPLE_EXPENSES);
             setTrips(DEMO_SAMPLE_TRIPS);
           } else {
-            // Load from database for new accounts
             await loadTripsFromDB();
             await loadExpensesFromDB();
           }
@@ -286,7 +273,6 @@ export default function BudgetTrackerScreen() {
         return;
       }
 
-      // Convert database format to app format
       const convertedExpenses: Expense[] = (data || []).map((exp: any) => ({
         id: exp.id,
         description: exp.description,
@@ -306,9 +292,7 @@ export default function BudgetTrackerScreen() {
     }
   };
 
-  // Get payment info for a person (with hardcoded demo values)
   const getPaymentInfo = async (personName: string): Promise<{ venmo: string | null; zelle: string | null }> => {
-    // Hardcoded demo values for demo account
     if (isDemoAccount) {
       const demoPaymentInfo: { [key: string]: { venmo: string | null; zelle: string | null } } = {
         'Sohrab': { venmo: '@sohrab-venmo', zelle: 'sohrab@zelle.com' },
@@ -319,7 +303,6 @@ export default function BudgetTrackerScreen() {
       return demoPaymentInfo[personName] || { venmo: null, zelle: null };
     }
 
-    // For non-demo accounts, try to fetch from database
     try {
       const { data, error } = await supabase
         .from('profiles')
@@ -341,17 +324,14 @@ export default function BudgetTrackerScreen() {
     }
   };
 
-  // Handle settle button press with animation
   const handleSettlePress = async (settlement: Settlement) => {
     const personName = settlement.to;
     const key = `${settlement.from}-${settlement.to}`;
 
-    // Initialize animation if not exists
     if (!pulseAnims.current[key]) {
       pulseAnims.current[key] = new Animated.Value(1);
     }
 
-    // If already showing, hide it
     if (showingPaymentInfo === key) {
       setShowingPaymentInfo(null);
       pulseAnims.current[key].stopAnimation();
@@ -359,10 +339,8 @@ export default function BudgetTrackerScreen() {
       return;
     }
 
-    // Show payment info
     setShowingPaymentInfo(key);
 
-    // Start pulsing animation
     Animated.loop(
       Animated.sequence([
         Animated.timing(pulseAnims.current[key], {
@@ -378,14 +356,12 @@ export default function BudgetTrackerScreen() {
       ])
     ).start();
 
-    // Fetch payment info if not already cached
     if (!paymentInfoMap[personName]) {
       const info = await getPaymentInfo(personName);
       setPaymentInfoMap(prev => ({ ...prev, [personName]: info }));
     }
   };
 
-  // New expense form state
   const [newDescription, setNewDescription] = useState("");
   const [newAmount, setNewAmount] = useState("");
   const [newCurrency, setNewCurrency] = useState("USD");
@@ -395,13 +371,20 @@ export default function BudgetTrackerScreen() {
   const [newTrip, setNewTrip] = useState("");
   const [newDate, setNewDate] = useState("");
 
-  // Convert amount to base currency
   const convertToBase = (amount: number, fromCurrency: string): number => {
-    const rate = exchangeRates[fromCurrency] || 1;
+    if (fromCurrency === 'USD') return amount;
+    const rate = exchangeRatesState[fromCurrency];
+    if (!rate || rate === 0) return amount;
+    return amount / rate;
+  };
+
+  const convertFromBase = (amount: number, toCurrency: string): number => {
+    if (toCurrency === 'USD') return amount;
+    const rate = exchangeRatesState[toCurrency];
+    if (!rate || rate === 0) return amount;
     return amount * rate;
   };
 
-  // Get filtered expenses
   const filteredExpenses = useMemo(() => {
     let filtered = expenses;
     if (selectedTrip !== "All") {
@@ -415,7 +398,6 @@ export default function BudgetTrackerScreen() {
     );
   }, [expenses, selectedTrip, selectedCategory]);
 
-  // Calculate totals
   const totals = useMemo(() => {
     const byCategory: { [key in ExpenseCategory]: number } = {
       lodging: 0,
@@ -428,15 +410,15 @@ export default function BudgetTrackerScreen() {
     let total = 0;
 
     filteredExpenses.forEach((expense) => {
-      const converted = convertToBase(expense.amount, expense.currency);
-      byCategory[expense.category] += converted;
-      total += converted;
+      const convertedToUSD = convertToBase(expense.amount, expense.currency);
+      const convertedToDisplay = convertFromBase(convertedToUSD, baseCurrency);
+      byCategory[expense.category] += convertedToDisplay;
+      total += convertedToDisplay;
     });
 
     return { byCategory, total };
-  }, [filteredExpenses]);
+  }, [filteredExpenses, baseCurrency]);
 
-  // Calculate balances for current user
   const balances = useMemo(() => {
     const balanceMap: { [person: string]: number } = {};
     teamMembers.forEach((member) => {
@@ -449,17 +431,15 @@ export default function BudgetTrackerScreen() {
         : expenses.filter((e) => e.trip === selectedTrip);
 
     expensesToCalculate.forEach((expense) => {
-      const converted = convertToBase(expense.amount, expense.currency);
-      const sharePerPerson = converted / expense.splitBetween.length;
+      const convertedToUSD = convertToBase(expense.amount, expense.currency);
+      const sharePerPersonUSD = convertedToUSD / expense.splitBetween.length;
 
-      // The payer is owed by everyone in the split
       expense.splitBetween.forEach((person) => {
         if (person !== expense.paidBy) {
-          // This person owes the payer
           if (person === currentUser) {
-            balanceMap[expense.paidBy] -= sharePerPerson; // I owe them
+            balanceMap[expense.paidBy] -= sharePerPersonUSD;
           } else if (expense.paidBy === currentUser) {
-            balanceMap[person] += sharePerPerson; // They owe me
+            balanceMap[person] += sharePerPersonUSD;
           }
         }
       });
@@ -467,13 +447,15 @@ export default function BudgetTrackerScreen() {
 
     const result: Balance[] = Object.entries(balanceMap)
       .filter(([person]) => person !== currentUser && Math.abs(balanceMap[person]) > 0.01)
-      .map(([person, balance]) => ({ person, balance }))
+      .map(([person, balanceUSD]) => {
+        const balanceInDisplayCurrency = convertFromBase(balanceUSD, baseCurrency);
+        return { person, balance: balanceInDisplayCurrency };
+      })
       .sort((a, b) => b.balance - a.balance);
 
     return result;
-  }, [expenses, selectedTrip, currentUser, teamMembers]);
+  }, [expenses, selectedTrip, currentUser, teamMembers, baseCurrency]);
 
-  // Calculate suggested settlements
   const settlements = useMemo((): Settlement[] => {
     const netBalances: { [person: string]: number } = {};
     teamMembers.forEach((member) => {
@@ -486,29 +468,32 @@ export default function BudgetTrackerScreen() {
         : expenses.filter((e) => e.trip === selectedTrip);
 
     expensesToCalculate.forEach((expense) => {
-      const converted = convertToBase(expense.amount, expense.currency);
-      const sharePerPerson = converted / expense.splitBetween.length;
+      const convertedToUSD = convertToBase(expense.amount, expense.currency);
+      const sharePerPersonUSD = convertedToUSD / expense.splitBetween.length;
 
-      // Payer paid full amount, but should only pay their share
-      netBalances[expense.paidBy] += converted - sharePerPerson;
+      netBalances[expense.paidBy] += convertedToUSD - sharePerPersonUSD;
 
-      // Everyone in split owes their share (except payer, handled above)
       expense.splitBetween.forEach((person) => {
         if (person !== expense.paidBy) {
-          netBalances[person] -= sharePerPerson;
+          netBalances[person] -= sharePerPersonUSD;
         }
       });
     });
 
-    // Simplify debts
     const debtors = Object.entries(netBalances)
-      .filter(([_, balance]) => balance < -0.01)
-      .map(([person, balance]) => ({ person, amount: -balance }))
+      .filter(([_, balanceUSD]) => balanceUSD < -0.01)
+      .map(([person, balanceUSD]) => {
+        const balanceInDisplayCurrency = convertFromBase(-balanceUSD, baseCurrency);
+        return { person, amount: balanceInDisplayCurrency };
+      })
       .sort((a, b) => b.amount - a.amount);
 
     const creditors = Object.entries(netBalances)
-      .filter(([_, balance]) => balance > 0.01)
-      .map(([person, balance]) => ({ person, amount: balance }))
+      .filter(([_, balanceUSD]) => balanceUSD > 0.01)
+      .map(([person, balanceUSD]) => {
+        const balanceInDisplayCurrency = convertFromBase(balanceUSD, baseCurrency);
+        return { person, amount: balanceInDisplayCurrency };
+      })
       .sort((a, b) => b.amount - a.amount);
 
     const result: Settlement[] = [];
@@ -536,14 +521,12 @@ export default function BudgetTrackerScreen() {
     }
 
     return result;
-  }, [expenses, selectedTrip, teamMembers]);
+  }, [expenses, selectedTrip, teamMembers, baseCurrency]);
 
-  // My total balance
   const myTotalBalance = useMemo(() => {
     return balances.reduce((sum, b) => sum + b.balance, 0);
   }, [balances]);
 
-  // Add expense
   const addExpense = async () => {
     if (
       !newDescription.trim() ||
@@ -575,11 +558,9 @@ export default function BudgetTrackerScreen() {
       createdAt: new Date(),
     };
 
-    // For demo account, just update local state
     if (isDemoAccount) {
-      setExpenses([...expenses, newExpense]);
+    setExpenses([...expenses, newExpense]);
     } else {
-      // For new accounts, save to database
       try {
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) {
@@ -587,7 +568,6 @@ export default function BudgetTrackerScreen() {
           return;
         }
 
-        // Find trip_id
         const { data: tripData } = await supabase
           .from('trips')
           .select('id')
@@ -617,7 +597,6 @@ export default function BudgetTrackerScreen() {
           return;
         }
 
-        // Reload expenses from DB
         await loadExpensesFromDB();
       } catch (error: any) {
         Alert.alert("Error", error.message || "Failed to save expense");
@@ -701,7 +680,6 @@ export default function BudgetTrackerScreen() {
     });
   };
 
-  // Render bar chart
   const renderBarChart = () => {
     const categories = Object.keys(categoryConfig) as ExpenseCategory[];
     const maxValue = Math.max(...Object.values(totals.byCategory), 1);
@@ -794,7 +772,6 @@ export default function BudgetTrackerScreen() {
     );
   };
 
-  // Render summary view
   const renderSummary = () => (
     <View style={styles.summaryContainer}>
       {/* Your balance card */}
@@ -904,29 +881,29 @@ export default function BudgetTrackerScreen() {
             return (
               <View key={index}>
                 <View style={styles.settlementRow}>
-                  <View style={styles.settlementPeople}>
-                    <View style={styles.smallAvatar}>
-                      <Text style={styles.smallAvatarText}>
-                        {settlement.from.charAt(0)}
-                      </Text>
-                    </View>
-                    <View style={styles.settlementArrow}>
-                      <Text style={styles.settlementArrowText}>→</Text>
-                    </View>
-                    <View style={styles.smallAvatar}>
-                      <Text style={styles.smallAvatarText}>
-                        {settlement.to.charAt(0)}
-                      </Text>
-                    </View>
-                  </View>
-                  <View style={styles.settlementInfo}>
-                    <Text style={styles.settlementNames}>
-                      {settlement.from} pays {settlement.to}
-                    </Text>
-                    <Text style={styles.settlementAmount}>
-                      {formatCurrency(settlement.amount)}
-                    </Text>
-                  </View>
+              <View style={styles.settlementPeople}>
+                <View style={styles.smallAvatar}>
+                  <Text style={styles.smallAvatarText}>
+                    {settlement.from.charAt(0)}
+                  </Text>
+                </View>
+                <View style={styles.settlementArrow}>
+                  <Text style={styles.settlementArrowText}>→</Text>
+                </View>
+                <View style={styles.smallAvatar}>
+                  <Text style={styles.smallAvatarText}>
+                    {settlement.to.charAt(0)}
+                  </Text>
+                </View>
+              </View>
+              <View style={styles.settlementInfo}>
+                <Text style={styles.settlementNames}>
+                  {settlement.from} pays {settlement.to}
+                </Text>
+                <Text style={styles.settlementAmount}>
+                  {formatCurrency(settlement.amount)}
+                </Text>
+              </View>
                   <Animated.View
                     style={{
                       transform: [{ scale: animValue }],
@@ -938,10 +915,10 @@ export default function BudgetTrackerScreen() {
                       accessibilityRole="button"
                       accessibilityLabel={`Settle payment with ${settlement.to}`}
                     >
-                      <Text style={styles.settleButtonText}>Settle</Text>
-                    </TouchableOpacity>
+                <Text style={styles.settleButtonText}>Settle</Text>
+              </TouchableOpacity>
                   </Animated.View>
-                </View>
+            </View>
                 {isShowing && paymentInfo && (
                   <View style={styles.paymentInfoContainer}>
                     {paymentInfo.venmo && (
@@ -979,7 +956,6 @@ export default function BudgetTrackerScreen() {
     </View>
   );
 
-  // Render expenses list
   const renderExpenses = () => (
     <View style={styles.expensesContainer}>
       {filteredExpenses.length === 0 ? (
@@ -993,11 +969,12 @@ export default function BudgetTrackerScreen() {
       ) : (
         filteredExpenses.map((expense) => {
           const config = categoryConfig[expense.category];
-          const myShare =
+          const myShareUSD =
             expense.splitBetween.includes(currentUser)
               ? convertToBase(expense.amount, expense.currency) /
               expense.splitBetween.length
               : 0;
+          const myShare = convertFromBase(myShareUSD, baseCurrency);
           const iPaid = expense.paidBy === currentUser;
 
           return (
@@ -1020,7 +997,7 @@ export default function BudgetTrackerScreen() {
                     {expense.description}
                   </Text>
                   <Text style={styles.expenseTotal}>
-                    {formatCurrency(expense.amount, expense.currency)}
+                    {formatCurrency(convertFromBase(convertToBase(expense.amount, expense.currency), baseCurrency))}
                   </Text>
                 </View>
                 <View style={styles.expenseMeta}>
@@ -1723,7 +1700,6 @@ const styles = StyleSheet.create({
     height: 100,
   },
 
-  // Expenses styles
   expensesContainer: {
     padding: 16,
   },
@@ -1848,7 +1824,6 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
   },
 
-  // Summary styles
   summaryContainer: {
     padding: 16,
   },
@@ -2076,7 +2051,6 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
   },
 
-  // Chart styles
   chartContainer: {
     padding: 16,
   },
@@ -2198,7 +2172,6 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
   },
 
-  // Empty state
   emptyState: {
     alignItems: "center",
     paddingVertical: 60,
@@ -2218,7 +2191,6 @@ const styles = StyleSheet.create({
     color: colors.textMuted,
   },
 
-  // FAB
   fab: {
     position: "absolute",
     right: 20,
@@ -2248,7 +2220,6 @@ const styles = StyleSheet.create({
     lineHeight: 32,
   },
 
-  // Modals
   modalOverlay: {
     flex: 1,
     backgroundColor: "rgba(0, 0, 0, 0.4)",
@@ -2323,7 +2294,6 @@ const styles = StyleSheet.create({
     color: colors.textMuted,
   },
 
-  // Add Modal
   addModalOverlay: {
     flex: 1,
     backgroundColor: "rgba(0, 0, 0, 0.5)",

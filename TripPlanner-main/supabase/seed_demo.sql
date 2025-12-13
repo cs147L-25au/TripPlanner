@@ -1,25 +1,13 @@
--- Seed script for demo account
--- Run this AFTER creating the demo account in Supabase Auth
--- The demo account should be created with:
--- Email: demo@tripplanner.com
--- Password: demo123
-
--- IMPORTANT: Make sure the demo account exists in auth.users before running this script
--- You can verify by running: SELECT id, email FROM auth.users WHERE email = 'demo@tripplanner.com';
-
--- Get demo user ID (will be used throughout)
 DO $$
 DECLARE
   demo_user_id UUID;
 BEGIN
-  -- Get the demo user's ID
   SELECT id INTO demo_user_id FROM auth.users WHERE email = 'demo@tripplanner.com';
   
   IF demo_user_id IS NULL THEN
     RAISE EXCEPTION 'Demo user not found. Please create the demo account first in Supabase Auth.';
   END IF;
 
-  -- Delete existing demo data (to allow re-running the script)
   DELETE FROM public.expenses WHERE user_id = demo_user_id;
   DELETE FROM public.payments WHERE user_id = demo_user_id;
   DELETE FROM public.packing_items WHERE user_id = demo_user_id;
@@ -27,7 +15,6 @@ BEGIN
   DELETE FROM public.trip_members WHERE user_id = demo_user_id OR invited_by = demo_user_id;
   DELETE FROM public.trips WHERE user_id = demo_user_id;
 
-  -- Create/update profile for demo user
   INSERT INTO public.profiles (id, email, full_name, venmo, zelle)
   VALUES (
     demo_user_id,
@@ -42,14 +29,12 @@ BEGIN
     venmo = EXCLUDED.venmo,
     zelle = EXCLUDED.zelle;
 
-  -- Create trips
   INSERT INTO public.trips (user_id, name, start_date, end_date)
   VALUES
     (demo_user_id, 'Summer Trip', '2025-06-15', '2025-06-20'),
     (demo_user_id, 'Winter Getaway', '2025-01-20', '2025-01-25'),
     (demo_user_id, 'Beach Vacation', '2025-07-10', '2025-07-15');
 
-  -- Create responsibilities/tasks
   INSERT INTO public.responsibilities (user_id, trip_id, task, assigned_to, trip_name, trip_date, complete_by, category, completed)
   SELECT 
     demo_user_id,
@@ -70,7 +55,6 @@ BEGIN
   ) AS r(task, assigned_to, trip_name, trip_date, complete_by, category, completed)
   JOIN public.trips t ON t.name = r.trip_name AND t.user_id = demo_user_id;
 
-  -- Create packing items
   INSERT INTO public.packing_items (user_id, trip_id, item, assigned_to, trip_name, bag, packed)
   SELECT 
     demo_user_id,
@@ -89,7 +73,6 @@ BEGIN
   ) AS p(item, assigned_to, trip_name, bag, packed)
   JOIN public.trips t ON t.name = p.trip_name AND t.user_id = demo_user_id;
 
-  -- Create payments
   INSERT INTO public.payments (user_id, trip_id, description, amount, from_person, to_person, trip_name, paid)
   SELECT 
     demo_user_id,
@@ -107,7 +90,6 @@ BEGIN
   ) AS p(description, amount, from_person, to_person, trip_name, paid)
   JOIN public.trips t ON t.name = p.trip_name AND t.user_id = demo_user_id;
 
-  -- Create expenses
   INSERT INTO public.expenses (user_id, trip_id, description, amount, currency, category, paid_by, split_between, trip_name, expense_date)
   SELECT 
     demo_user_id,
@@ -132,4 +114,3 @@ BEGIN
 
   RAISE NOTICE 'Demo account data seeded successfully!';
 END $$;
-

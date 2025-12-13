@@ -51,7 +51,6 @@ export default function SignUpScreen() {
             return;
         }
 
-        // Create profile with Venmo and Zelle info
         if (data.user) {
             const { error: profileError } = await supabase
                 .from('profiles')

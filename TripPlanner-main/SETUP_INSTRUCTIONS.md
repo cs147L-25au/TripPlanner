@@ -14,46 +14,12 @@
    EXPO_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
    ```
 
-3. **Set up Supabase** (Required):
-   - Create a free account at [supabase.com](https://supabase.com)
-   - Create a new project
-   - Go to Project Settings > API
-   - Copy your Project URL and anon/public key
+3. **Set up Supabase**:
+   - Go to Project Settings > API for a new project
+   - Copy  Project URL and anon/public key
    - Go to SQL Editor
-   - Run the contents of `supabase/schema.sql` to create all tables
+   - Run the contents of `supabase/schema.sql` and `supabase/seed_demo.sql`
    - Add credentials to `.env` file
-
-4. **Run the app**:
-   ```bash
-   npm start
-   ```
-   Then:
-   - Press `i` for iOS simulator
-   - Press `a` for Android emulator  
-   - Or scan QR code with Expo Go app
-
-## Testing Checklist
-
-- ✅ App starts without errors
-- ✅ Can sign up and login
-- ✅ Can navigate between screens
-- ✅ Can add tasks, packing items, payments
-- ✅ Calendar date picker works
-- ✅ Keyboard doesn't block input fields
-- ✅ Animations work on button presses
-- ✅ Timer shows countdown on tasks
-- ✅ All screens accessible via navigation
-
-## Troubleshooting
-
-**If you see "Cannot find module" errors:**
-- Run `npm install --legacy-peer-deps` again
-- Clear cache: `npx expo start -c`
-
-**If Supabase connection fails:**
-- Verify `.env` file exists and has correct values
-- Check Supabase project is active
-- Verify database schema was run successfully
 
 ## Project Structure
 
@@ -80,8 +46,4 @@ TripPlanner-main/
 ├── package.json
 └── README.md
 ```
-
-## Requirements Met
-
-See `REQUIREMENTS_CHECKLIST.md` for detailed breakdown of all technical requirements.
 

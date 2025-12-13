@@ -11,8 +11,10 @@ import {
   Modal,
   Dimensions,
   KeyboardAvoidingView,
+  Share,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import * as Linking from "expo-linking";
 import DatePicker from "../../components/DatePicker";
 import TaskTimer from "../../components/TaskTimer";
 import AnimatedButton from "../../components/AnimatedButton";
@@ -52,167 +54,153 @@ type TabType = "responsibilities" | "packing" | "payments";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
-// Warm, inviting color scheme
 const colors = {
-  // Primary warm palette
-  primary: "#E67E5A", // Warm coral
-  secondary: "#D4A574", // Warm sand
-  accent: "#5B9A8B", // Warm teal
-  tertiary: "#C97D60", // Terracotta
+  primary: "#E67E5A",
+  secondary: "#D4A574",
+  accent: "#5B9A8B",
+  tertiary: "#C97D60",
+  background: "#FFF8F5",
+  surface: "#FFFFFF",
+  cardBg: "#FFFBF8",
+  text: "#3D2F2A",
+  textLight: "#8B6F5E",
+  textMuted: "#A68B7A",
+  border: "#E8D5C8",
+  borderLight: "#F0E6DD",
+  accommodation: "#E67E5A",
+  transportation: "#5B9A8B",
+  excursions: "#D4A574",
 
-  // Backgrounds - warm tones
-  background: "#FFF8F5", // Warm cream
-  surface: "#FFFFFF", // Pure white for contrast
-  cardBg: "#FFFBF8", // Very warm off-white
-
-  // Text - warm grays
-  text: "#3D2F2A", // Warm dark brown
-  textLight: "#8B6F5E", // Warm medium brown
-  textMuted: "#A68B7A", // Warm light brown
-
-  // Borders - warm
-  border: "#E8D5C8", // Warm beige border
-  borderLight: "#F0E6DD", // Very light warm border
-
-  // Category colors - warm and vibrant
-  accommodation: "#E67E5A", // Warm coral
-  transportation: "#5B9A8B", // Warm teal
-  excursions: "#D4A574", // Warm sand
-
-  // Status colors - warm
-  success: "#6B9B7A", // Warm green
-  warning: "#D4A574", // Warm amber
-  error: "#D87A7A", // Warm red
-
-  // Header
-  headerBg: "#FFF8F5", // Warm cream
+  success: "#6B9B7A",
+  warning: "#D4A574",
+  error: "#D87A7A",
+  headerBg: "#FFF8F5",
 };
 
-// Sample data for demo account
 const DEMO_SAMPLE_RESPONSIBILITIES: Responsibility[] = [
-  {
-    id: "1",
-    task: "Book accommodation",
-    assignedTo: "Claudia",
-    trip: "Summer Trip",
-    tripDate: "06/15/2025",
-    completeBy: "12/20/2024",
-    category: "Accommodation",
-    completed: false,
-  },
-  {
-    id: "2",
-    task: "Plan itinerary",
-    assignedTo: "Sohrab",
-    trip: "Summer Trip",
-    tripDate: "06/15/2025",
-    completeBy: "12/18/2024",
-    category: "Excursions",
-    completed: false,
-  },
-  {
-    id: "3",
-    task: "Reserve restaurant",
-    assignedTo: "Adrian",
-    trip: "Summer Trip",
-    tripDate: "06/15/2025",
-    completeBy: "12/15/2024",
-    category: "Excursions",
-    completed: true,
-  },
-  {
-    id: "4",
-    task: "Buy tickets",
-    assignedTo: "Claudia",
-    trip: "Winter Getaway",
-    tripDate: "01/20/2025",
-    completeBy: "01/10/2025",
-    category: "Transportation",
-    completed: false,
-  },
-  {
-    id: "5",
-    task: "Research activities",
-    assignedTo: "Claudia",
-    trip: "Summer Trip",
-    tripDate: "06/15/2025",
-    completeBy: "12/22/2024",
-    category: "Excursions",
-    completed: false,
-  },
+    {
+      id: "1",
+      task: "Book accommodation",
+      assignedTo: "Claudia",
+      trip: "Summer Trip",
+      tripDate: "06/15/2025",
+      completeBy: "12/20/2024",
+      category: "Accommodation",
+      completed: false,
+    },
+    {
+      id: "2",
+      task: "Plan itinerary",
+      assignedTo: "Sohrab",
+      trip: "Summer Trip",
+      tripDate: "06/15/2025",
+      completeBy: "12/18/2024",
+      category: "Excursions",
+      completed: false,
+    },
+    {
+      id: "3",
+      task: "Reserve restaurant",
+      assignedTo: "Adrian",
+      trip: "Summer Trip",
+      tripDate: "06/15/2025",
+      completeBy: "12/15/2024",
+      category: "Excursions",
+      completed: true,
+    },
+    {
+      id: "4",
+      task: "Buy tickets",
+      assignedTo: "Claudia",
+      trip: "Winter Getaway",
+      tripDate: "01/20/2025",
+      completeBy: "01/10/2025",
+      category: "Transportation",
+      completed: false,
+    },
+    {
+      id: "5",
+      task: "Research activities",
+      assignedTo: "Claudia",
+      trip: "Summer Trip",
+      tripDate: "06/15/2025",
+      completeBy: "12/22/2024",
+      category: "Excursions",
+      completed: false,
+    },
 ];
 
 const DEMO_SAMPLE_PACKING_ITEMS: PackingItem[] = [
-  {
-    id: "1",
-    item: "Passport",
-    assignedTo: "Claudia",
-    trip: "Summer Trip",
-    bag: "Carry-on",
-    packed: true,
-  },
-  {
-    id: "2",
-    item: "Camera",
-    assignedTo: "Sohrab",
-    trip: "Summer Trip",
-    bag: "Carry-on",
-    packed: false,
-  },
-  {
-    id: "3",
-    item: "First aid kit",
-    assignedTo: "Adrian",
-    trip: "Summer Trip",
-    bag: "Checked",
-    packed: false,
-  },
-  {
-    id: "4",
-    item: "Ski jacket",
-    assignedTo: "Claudia",
-    trip: "Winter Getaway",
-    bag: "Checked",
-    packed: false,
-  },
-  {
-    id: "5",
-    item: "Travel adapter",
-    assignedTo: "Claudia",
-    trip: "Summer Trip",
-    bag: "Carry-on",
-    packed: false,
-  },
+    {
+      id: "1",
+      item: "Passport",
+      assignedTo: "Claudia",
+      trip: "Summer Trip",
+      bag: "Carry-on",
+      packed: true,
+    },
+    {
+      id: "2",
+      item: "Camera",
+      assignedTo: "Sohrab",
+      trip: "Summer Trip",
+      bag: "Carry-on",
+      packed: false,
+    },
+    {
+      id: "3",
+      item: "First aid kit",
+      assignedTo: "Adrian",
+      trip: "Summer Trip",
+      bag: "Checked",
+      packed: false,
+    },
+    {
+      id: "4",
+      item: "Ski jacket",
+      assignedTo: "Claudia",
+      trip: "Winter Getaway",
+      bag: "Checked",
+      packed: false,
+    },
+    {
+      id: "5",
+      item: "Travel adapter",
+      assignedTo: "Claudia",
+      trip: "Summer Trip",
+      bag: "Carry-on",
+      packed: false,
+    },
 ];
 
 const DEMO_SAMPLE_PAYMENTS: Payment[] = [
-  {
-    id: "1",
-    description: "Venmo Kevin for Airbnb",
-    amount: "$150",
-    from: "Claudia",
-    to: "Kevin",
-    trip: "Summer Trip",
-    paid: false,
-  },
-  {
-    id: "2",
-    description: "Split dinner bill",
-    amount: "$45",
-    from: "Sohrab",
-    to: "Claudia",
-    trip: "Summer Trip",
-    paid: true,
-  },
-  {
-    id: "3",
-    description: "Flight reimbursement",
-    amount: "$320",
-    from: "Adrian",
-    to: "Claudia",
-    trip: "Winter Getaway",
-    paid: false,
-  },
+    {
+      id: "1",
+      description: "Venmo Kevin for Airbnb",
+      amount: "$150",
+      from: "Claudia",
+      to: "Kevin",
+      trip: "Summer Trip",
+      paid: false,
+    },
+    {
+      id: "2",
+      description: "Split dinner bill",
+      amount: "$45",
+      from: "Sohrab",
+      to: "Claudia",
+      trip: "Summer Trip",
+      paid: true,
+    },
+    {
+      id: "3",
+      description: "Flight reimbursement",
+      amount: "$320",
+      from: "Adrian",
+      to: "Claudia",
+      trip: "Winter Getaway",
+      paid: false,
+    },
 ];
 
 const DEMO_SAMPLE_TRIPS = ["Summer Trip", "Winter Getaway", "Beach Vacation"];
@@ -276,7 +264,6 @@ export default function CollabPlanner147() {
   const [trips, setTrips] = useState<string[]>([]);
   const bags = ["Carry-on", "Checked", "Personal Item"];
 
-  // Check if user is demo account and load data
   useEffect(() => {
     const loadUserData = async () => {
       try {
@@ -286,13 +273,11 @@ export default function CollabPlanner147() {
           setIsDemoAccount(isDemo);
 
           if (isDemo) {
-            // Use sample data for demo account
             setResponsibilities(DEMO_SAMPLE_RESPONSIBILITIES);
             setPackingItems(DEMO_SAMPLE_PACKING_ITEMS);
             setPayments(DEMO_SAMPLE_PAYMENTS);
             setTrips(DEMO_SAMPLE_TRIPS);
           } else {
-            // Load from database for new accounts
             await loadTripsFromDB();
             await loadResponsibilitiesFromDB();
             await loadPackingItemsFromDB();
@@ -438,18 +423,15 @@ export default function CollabPlanner147() {
     return category ? category.color : colors.textLight;
   };
 
-  // Get dominant category for a trip based on tasks
   const getTripCategoryColor = (tripName: string) => {
     const tripTasks = responsibilities.filter((r) => r.trip === tripName);
     if (tripTasks.length === 0) return colors.textLight;
 
-    // Count categories
     const categoryCounts: { [key: string]: number } = {};
     tripTasks.forEach((task) => {
       categoryCounts[task.category] = (categoryCounts[task.category] || 0) + 1;
     });
 
-    // Get most common category
     const dominantCategory = Object.keys(categoryCounts).reduce((a, b) =>
       categoryCounts[a] > categoryCounts[b] ? a : b
     );
@@ -528,7 +510,7 @@ export default function CollabPlanner147() {
     return filtered;
   };
 
-  const addResponsibility = () => {
+  const addResponsibility = async () => {
     if (
       newTask.trim() &&
       newTaskAssignee.trim() &&
@@ -536,7 +518,6 @@ export default function CollabPlanner147() {
       newTaskCompleteBy.trim() &&
       newTaskCategory.trim()
     ) {
-      // Convert date from YYYY-MM-DD to MM/DD/YYYY format
       const formatDateForDisplay = (dateStr: string) => {
         if (!dateStr || dateStr === "TBD") return "TBD";
         const date = new Date(dateStr);
@@ -544,6 +525,11 @@ export default function CollabPlanner147() {
         const day = String(date.getDate()).padStart(2, '0');
         const year = date.getFullYear();
         return `${month}/${day}/${year}`;
+      };
+
+      const parseDateForDB = (dateStr: string): Date | null => {
+        if (!dateStr || dateStr === "TBD") return null;
+        return new Date(dateStr);
       };
 
       const newResp: Responsibility = {
@@ -556,7 +542,70 @@ export default function CollabPlanner147() {
         category: newTaskCategory.trim(),
         completed: false,
       };
+
+      if (isDemoAccount) {
       setResponsibilities([...responsibilities, newResp]);
+      } else {
+        try {
+          const { data: { user } } = await supabase.auth.getUser();
+          if (!user) {
+            Alert.alert("Error", "You must be logged in to add tasks");
+            return;
+          }
+
+          const { data: tripData, error: tripError } = await supabase
+            .from('trips')
+            .select('id')
+            .eq('user_id', user.id)
+            .eq('name', newTaskTrip.trim())
+            .single();
+
+          if (tripError || !tripData) {
+            Alert.alert("Error", "Trip not found. Please select a valid trip.");
+            return;
+          }
+
+          const { data, error } = await supabase
+            .from('responsibilities')
+            .insert({
+              user_id: user.id,
+              trip_id: tripData.id,
+              task: newTask.trim(),
+              assigned_to: newTaskAssignee.trim(),
+              trip_name: newTaskTrip.trim(),
+              trip_date: parseDateForDB(newTaskTripDate),
+              complete_by: parseDateForDB(newTaskCompleteBy) || new Date(),
+              category: newTaskCategory.trim(),
+              completed: false,
+            })
+            .select()
+            .single();
+
+          if (error) {
+            console.error("Error adding task:", error);
+            Alert.alert("Error", "Failed to add task. Please try again.");
+            return;
+          }
+
+          const converted: Responsibility = {
+            id: data.id,
+            task: data.task,
+            assignedTo: data.assigned_to,
+            trip: data.trip_name,
+            tripDate: data.trip_date ? formatDateForDisplay(data.trip_date) : '',
+            completeBy: data.complete_by ? formatDateForDisplay(data.complete_by) : '',
+            category: data.category,
+            completed: data.completed || false,
+          };
+
+          setResponsibilities([...responsibilities, converted]);
+        } catch (error) {
+          console.error("Error:", error);
+          Alert.alert("Error", "Failed to add task. Please try again.");
+          return;
+        }
+      }
+
       setNewTask("");
       setNewTaskAssignee("");
       setNewTaskTrip("");
@@ -564,17 +613,61 @@ export default function CollabPlanner147() {
       setNewTaskCompleteBy("");
       setNewTaskCategory("");
       setShowAddModal(false);
+
+      const tripName = newTaskTrip.trim();
+      if (!trips.includes(tripName)) {
+        setTrips([...trips, tripName]);
+      }
+
+      if (selectedPerson === "My Tasks" && newTaskAssignee.trim() !== currentUser) {
+        setSelectedPerson("All");
+      }
+      if (selectedTrip !== "All" && tripName !== selectedTrip) {
+        setSelectedTrip("All");
+      }
     } else {
       Alert.alert("Error", "Please fill in all required fields");
     }
   };
 
-  const toggleResponsibility = (id: string) => {
+  const toggleResponsibility = async (id: string) => {
+    const resp = responsibilities.find((r) => r.id === id);
+    if (!resp) return;
+
+    const newCompleted = !resp.completed;
+
     setResponsibilities(
-      responsibilities.map((resp) =>
-        resp.id === id ? { ...resp, completed: !resp.completed } : resp
+      responsibilities.map((r) =>
+        r.id === id ? { ...r, completed: newCompleted } : r
       )
     );
+
+    if (!isDemoAccount) {
+      try {
+        const { error } = await supabase
+          .from('responsibilities')
+          .update({ completed: newCompleted })
+          .eq('id', id);
+
+        if (error) {
+          console.error("Error updating task:", error);
+          setResponsibilities(
+            responsibilities.map((r) =>
+              r.id === id ? { ...r, completed: !newCompleted } : r
+            )
+          );
+          Alert.alert("Error", "Failed to update task. Please try again.");
+        }
+      } catch (error) {
+        console.error("Error:", error);
+        setResponsibilities(
+          responsibilities.map((r) =>
+            r.id === id ? { ...r, completed: !newCompleted } : r
+          )
+        );
+        Alert.alert("Error", "Failed to update task. Please try again.");
+      }
+    }
   };
 
   const deleteResponsibility = (id: string) => {
@@ -583,10 +676,30 @@ export default function CollabPlanner147() {
       {
         text: "Delete",
         style: "destructive",
-        onPress: () =>
+        onPress: async () => {
           setResponsibilities(
             responsibilities.filter((resp) => resp.id !== id)
-          ),
+          );
+
+          if (!isDemoAccount) {
+            try {
+              const { error } = await supabase
+                .from('responsibilities')
+                .delete()
+                .eq('id', id);
+
+              if (error) {
+                console.error("Error deleting task:", error);
+                await loadResponsibilitiesFromDB();
+                Alert.alert("Error", "Failed to delete task. Please try again.");
+              }
+            } catch (error) {
+              console.error("Error:", error);
+              await loadResponsibilitiesFromDB();
+              Alert.alert("Error", "Failed to delete task. Please try again.");
+            }
+          }
+        },
       },
     ]);
   };
@@ -729,9 +842,19 @@ export default function CollabPlanner147() {
   };
 
   const sendNudge = (task: Responsibility) => {
+    const assignedPerson = task.assignedTo;
+    
+    console.log("Sending reminder - Task:", task.task, "Assigned to:", assignedPerson, "Full task:", JSON.stringify(task));
+    
+    if (!assignedPerson || assignedPerson.trim() === "") {
+      console.error("Task missing assignedTo:", task);
+      Alert.alert("Error", "Could not determine who this task is assigned to.");
+      return;
+    }
+    
     Alert.alert(
       "Reminder Sent",
-      `A reminder has been sent to ${task.assignedTo} about "${task.task}" (Due: ${task.completeBy})`,
+      `A reminder has been sent to ${assignedPerson} about "${task.task}" (Due: ${task.completeBy})`,
       [{ text: "OK" }]
     );
   };
@@ -765,8 +888,7 @@ export default function CollabPlanner147() {
         return;
       }
 
-      // Add to local trips list
-      setTrips([...trips, newTripName.trim()]);
+      await loadTripsFromDB();
       setNewTripName("");
       setNewTripStartDate("");
       setNewTripEndDate("");
@@ -783,7 +905,6 @@ export default function CollabPlanner147() {
       return;
     }
 
-    // Basic email validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(inviteEmail.trim())) {
       Alert.alert("Error", "Please enter a valid email address");
@@ -797,43 +918,67 @@ export default function CollabPlanner147() {
         return;
       }
 
-      // First, find the trip_id
       const { data: tripData, error: tripError } = await supabase
         .from('trips')
-        .select('id')
-        .eq('name', inviteTrip)
-        .eq('user_id', user.id)
-        .single();
+        .select('id, name, user_id')
+        .eq('name', inviteTrip.trim())
+        .maybeSingle();
 
-      if (tripError || !tripData) {
-        Alert.alert("Error", "Trip not found");
+      if (tripError) {
+        console.error("Trip query error:", tripError);
+        Alert.alert("Error", `Failed to find trip: ${tripError.message}`);
         return;
       }
 
-      // Find the user by email
+      if (!tripData) {
+        console.error("Trip not found. Available trips:", trips);
+        Alert.alert("Error", `Trip "${inviteTrip}" not found. Please make sure the trip name matches exactly.`);
+        return;
+      }
+
+      const isCreator = tripData.user_id === user.id;
+      let isMember = false;
+
+      if (!isCreator) {
+        const { data: memberData } = await supabase
+          .from('trip_members')
+          .select('id')
+          .eq('trip_id', tripData.id)
+          .eq('user_id', user.id)
+          .eq('status', 'accepted')
+          .maybeSingle();
+        
+        isMember = !!memberData;
+      }
+
+      if (!isCreator && !isMember) {
+        Alert.alert("Error", "You don't have permission to invite people to this trip.");
+        return;
+      }
+
+      const invitationToken = `${tripData.id}-${Date.now()}-${Math.random().toString(36).substring(7)}`;
+
       const { data: inviteeData, error: inviteeError } = await supabase
         .from('profiles')
         .select('id')
         .eq('email', inviteEmail.trim())
-        .single();
+        .maybeSingle();
 
-      if (inviteeError || !inviteeData) {
-        Alert.alert("Error", "User with this email not found. They need to sign up first.");
-        return;
-      }
-
-      // Create invitation
-      const { error: inviteError } = await supabase
+      const { data: inviteRecord, error: inviteError } = await supabase
         .from('trip_members')
         .insert({
           trip_id: tripData.id,
-          user_id: inviteeData.id,
+          user_id: inviteeData?.id || null,
           invited_by: user.id,
+          invited_email: inviteEmail.trim(),
+          invitation_token: invitationToken,
           status: 'pending',
-        });
+        })
+        .select()
+        .single();
 
       if (inviteError) {
-        if (inviteError.code === '23505') { // Unique constraint violation
+        if (inviteError.code === '23505') {
           Alert.alert("Error", "This person is already invited to this trip");
         } else {
           Alert.alert("Error", inviteError.message);
@@ -841,11 +986,46 @@ export default function CollabPlanner147() {
         return;
       }
 
+      const deepLink = Linking.createURL(`/invite/${invitationToken}`, {
+        scheme: 'trip-planner',
+      });
+
+      try {
+        await Share.share({
+          message: `You've been invited to join "${tripData.name}" on Trip Planner! Click this link to join: ${deepLink}`,
+          title: 'Trip Invitation',
+        });
+      } catch (shareError) {
+        Alert.alert(
+          "Invitation Created",
+          `Invitation link: ${deepLink}\n\nShare this link with ${inviteEmail.trim()}`,
+          [{ text: "OK" }]
+        );
+      }
+
+      if (!inviteeData) {
+        const { error: magicLinkError } = await supabase.auth.signInWithOtp({
+          email: inviteEmail.trim(),
+          options: {
+            emailRedirectTo: deepLink,
+            data: {
+              invitation_token: invitationToken,
+              trip_name: tripData.name,
+            },
+          },
+        });
+
+        if (magicLinkError) {
+          console.error("Error sending magic link:", magicLinkError);
+        }
+      }
+
       setInviteEmail("");
       setInviteTrip("");
       setShowInviteModal(false);
       Alert.alert("Success", `Invitation sent to ${inviteEmail.trim()}!`);
     } catch (error: any) {
+      console.error("Invitation error:", error);
       Alert.alert("Error", error.message || "Failed to send invitation");
     }
   };
@@ -962,10 +1142,7 @@ export default function CollabPlanner147() {
               </>
             )}
           </View>
-          <View style={styles.userBadge}>
-            <Text style={styles.userBadgeText}>{currentUser}</Text>
           </View>
-        </View>
         <View style={styles.headerActions}>
           <TouchableOpacity
             style={styles.headerActionButton}
@@ -996,8 +1173,8 @@ export default function CollabPlanner147() {
                 style={[
                   styles.filterButton,
                   selectedPerson !== "All" &&
-                  selectedPerson !== "My Tasks" &&
-                  styles.filterButtonActive,
+                    selectedPerson !== "My Tasks" &&
+                    styles.filterButtonActive,
                 ]}
                 onPress={() => handleFilterPress("person")}
               >
@@ -1005,8 +1182,8 @@ export default function CollabPlanner147() {
                   style={[
                     styles.filterButtonText,
                     selectedPerson !== "All" &&
-                    selectedPerson !== "My Tasks" &&
-                    styles.filterButtonTextActive,
+                      selectedPerson !== "My Tasks" &&
+                      styles.filterButtonTextActive,
                   ]}
                 >
                   Member
@@ -1156,7 +1333,6 @@ export default function CollabPlanner147() {
               </View>
             ) : (
               (() => {
-                // Group by trip for visual organization
                 const groupedByTrip: { [key: string]: Responsibility[] } = {};
                 filteredResponsibilities.forEach((resp) => {
                   if (!groupedByTrip[resp.trip]) {
@@ -1212,12 +1388,12 @@ export default function CollabPlanner147() {
                                 },
                                 resp.completed && styles.itemCardCompleted,
                                 overdue &&
-                                !resp.completed &&
-                                styles.itemCardOverdue,
+                                  !resp.completed &&
+                                  styles.itemCardOverdue,
                                 dueSoon &&
-                                !resp.completed &&
-                                !overdue &&
-                                styles.itemCardDueSoon,
+                                  !resp.completed &&
+                                  !overdue &&
+                                  styles.itemCardDueSoon,
                               ]}
                             >
                               <TouchableOpacity
@@ -1243,7 +1419,7 @@ export default function CollabPlanner147() {
                                       style={[
                                         styles.itemText,
                                         resp.completed &&
-                                        styles.itemTextCompleted,
+                                          styles.itemTextCompleted,
                                       ]}
                                       numberOfLines={2}
                                     >
@@ -1265,14 +1441,14 @@ export default function CollabPlanner147() {
                                       style={[
                                         styles.badge,
                                         resp.assignedTo === currentUser &&
-                                        styles.badgeMine,
+                                          styles.badgeMine,
                                       ]}
                                     >
                                       <Text
                                         style={[
                                           styles.badgeText,
                                           resp.assignedTo === currentUser &&
-                                          styles.badgeTextMine,
+                                            styles.badgeTextMine,
                                         ]}
                                       >
                                         {resp.assignedTo === currentUser
@@ -1304,12 +1480,12 @@ export default function CollabPlanner147() {
                                         style={[
                                           styles.dateValue,
                                           overdue &&
-                                          !resp.completed &&
-                                          styles.dateValueOverdue,
+                                            !resp.completed &&
+                                            styles.dateValueOverdue,
                                           dueSoon &&
-                                          !resp.completed &&
-                                          !overdue &&
-                                          styles.dateValueDueSoon,
+                                            !resp.completed &&
+                                            !overdue &&
+                                            styles.dateValueDueSoon,
                                         ]}
                                         accessibilityLabel={`Due date: ${resp.completeBy}`}
                                       >
@@ -1331,9 +1507,15 @@ export default function CollabPlanner147() {
                                 {!resp.completed && (
                                   <TouchableOpacity
                                     style={styles.remindButton}
-                                    onPress={() => sendNudge(resp)}
+                                    onPress={() => {
+                                      const taskToRemind: Responsibility = {
+                                        ...resp,
+                                        assignedTo: resp.assignedTo,
+                                      };
+                                      sendNudge(taskToRemind);
+                                    }}
                                     accessibilityRole="button"
-                                    accessibilityLabel={`Send reminder for ${resp.task}`}
+                                    accessibilityLabel={`Send reminder to ${resp.assignedTo} for ${resp.task}`}
                                   >
                                     <Text style={styles.remindButtonText}>🔔 Remind</Text>
                                   </TouchableOpacity>
@@ -1368,7 +1550,6 @@ export default function CollabPlanner147() {
               </View>
             ) : (
               (() => {
-                // Group by person, then by trip, then by bag
                 const groupedByPerson: {
                   [key: string]: {
                     [key: string]: { [key: string]: PackingItem[] };
@@ -1448,10 +1629,10 @@ export default function CollabPlanner147() {
                                           style={[
                                             styles.packingItemCard,
                                             item.packed &&
-                                            styles.itemCardCompleted,
+                                              styles.itemCardCompleted,
                                             itemIndex === 0 && { marginTop: 4 },
                                             itemIndex ===
-                                            bagItems.length - 1 && {
+                                              bagItems.length - 1 && {
                                               marginBottom: 0,
                                             },
                                           ]}
@@ -1466,7 +1647,7 @@ export default function CollabPlanner147() {
                                               style={[
                                                 styles.checkbox,
                                                 item.packed &&
-                                                styles.checkboxChecked,
+                                                  styles.checkboxChecked,
                                               ]}
                                             >
                                               {item.packed && (
@@ -1482,7 +1663,7 @@ export default function CollabPlanner147() {
                                                 style={[
                                                   styles.itemText,
                                                   item.packed &&
-                                                  styles.itemTextCompleted,
+                                                    styles.itemTextCompleted,
                                                 ]}
                                                 numberOfLines={2}
                                               >
@@ -1527,7 +1708,6 @@ export default function CollabPlanner147() {
               </View>
             ) : (
               (() => {
-                // Group by trip for visual organization
                 const groupedByTrip: { [key: string]: Payment[] } = {};
                 filteredPayments.forEach((payment) => {
                   if (!groupedByTrip[payment.trip]) {
@@ -1767,8 +1947,8 @@ export default function CollabPlanner147() {
                 {activeTab === "responsibilities"
                   ? "Add New Task"
                   : activeTab === "packing"
-                    ? "Add Packing Item"
-                    : "Add Payment"}
+                  ? "Add Packing Item"
+                  : "Add Payment"}
               </Text>
               <TouchableOpacity onPress={() => setShowAddModal(false)}>
                 <Text style={styles.modalClose}>×</Text>
@@ -1793,7 +1973,7 @@ export default function CollabPlanner147() {
                         style={[
                           styles.pickerOption,
                           newTaskAssignee === member &&
-                          styles.pickerOptionSelected,
+                            styles.pickerOptionSelected,
                         ]}
                         onPress={() => setNewTaskAssignee(member)}
                       >
@@ -1801,7 +1981,7 @@ export default function CollabPlanner147() {
                           style={[
                             styles.pickerOptionText,
                             newTaskAssignee === member &&
-                            styles.pickerOptionTextSelected,
+                              styles.pickerOptionTextSelected,
                           ]}
                         >
                           {member}
@@ -1824,7 +2004,7 @@ export default function CollabPlanner147() {
                           style={[
                             styles.pickerOptionText,
                             newTaskTrip === trip &&
-                            styles.pickerOptionTextSelected,
+                              styles.pickerOptionTextSelected,
                           ]}
                         >
                           {trip}
@@ -1904,7 +2084,7 @@ export default function CollabPlanner147() {
                         style={[
                           styles.pickerOption,
                           newItemAssignee === member &&
-                          styles.pickerOptionSelected,
+                            styles.pickerOptionSelected,
                         ]}
                         onPress={() => setNewItemAssignee(member)}
                       >
@@ -1912,7 +2092,7 @@ export default function CollabPlanner147() {
                           style={[
                             styles.pickerOptionText,
                             newItemAssignee === member &&
-                            styles.pickerOptionTextSelected,
+                              styles.pickerOptionTextSelected,
                           ]}
                         >
                           {member}
@@ -1935,7 +2115,7 @@ export default function CollabPlanner147() {
                           style={[
                             styles.pickerOptionText,
                             newItemTrip === trip &&
-                            styles.pickerOptionTextSelected,
+                              styles.pickerOptionTextSelected,
                           ]}
                         >
                           {trip}
@@ -1958,7 +2138,7 @@ export default function CollabPlanner147() {
                           style={[
                             styles.pickerOptionText,
                             newItemBag === bag &&
-                            styles.pickerOptionTextSelected,
+                              styles.pickerOptionTextSelected,
                           ]}
                         >
                           {bag}
@@ -2000,7 +2180,7 @@ export default function CollabPlanner147() {
                         style={[
                           styles.pickerOption,
                           newPaymentFrom === member &&
-                          styles.pickerOptionSelected,
+                            styles.pickerOptionSelected,
                         ]}
                         onPress={() => setNewPaymentFrom(member)}
                       >
@@ -2008,7 +2188,7 @@ export default function CollabPlanner147() {
                           style={[
                             styles.pickerOptionText,
                             newPaymentFrom === member &&
-                            styles.pickerOptionTextSelected,
+                              styles.pickerOptionTextSelected,
                           ]}
                         >
                           {member}
@@ -2032,7 +2212,7 @@ export default function CollabPlanner147() {
                         style={[
                           styles.pickerOption,
                           newPaymentTrip === trip &&
-                          styles.pickerOptionSelected,
+                            styles.pickerOptionSelected,
                         ]}
                         onPress={() => setNewPaymentTrip(trip)}
                       >
@@ -2040,7 +2220,7 @@ export default function CollabPlanner147() {
                           style={[
                             styles.pickerOptionText,
                             newPaymentTrip === trip &&
-                            styles.pickerOptionTextSelected,
+                              styles.pickerOptionTextSelected,
                           ]}
                         >
                           {trip}
@@ -2078,7 +2258,7 @@ export default function CollabPlanner147() {
               <TouchableOpacity onPress={() => setShowTripModal(false)}>
                 <Text style={styles.modalClose}>×</Text>
               </TouchableOpacity>
-            </View>
+        </View>
             <ScrollView style={styles.modalScroll}>
               <Text style={styles.modalLabel}>Trip Name *</Text>
               <TextInput
@@ -2088,16 +2268,16 @@ export default function CollabPlanner147() {
                 onChangeText={setNewTripName}
                 placeholderTextColor={colors.textLight}
               />
-              <Text style={styles.modalLabel}>Start Date (Optional)</Text>
               <DatePicker
-                date={newTripStartDate}
-                onDateChange={setNewTripStartDate}
+                label="Start Date (Optional)"
+                value={newTripStartDate}
+                onChange={(date) => setNewTripStartDate(date)}
                 placeholder="Select start date"
               />
-              <Text style={styles.modalLabel}>End Date (Optional)</Text>
               <DatePicker
-                date={newTripEndDate}
-                onDateChange={setNewTripEndDate}
+                label="End Date (Optional)"
+                value={newTripEndDate}
+                onChange={(date) => setNewTripEndDate(date)}
                 placeholder="Select end date"
               />
               <TouchableOpacity
